@@ -1,0 +1,7 @@
+{
+  "heroCards": [
+    { "name": "Denim jakna", "category": "Jakne", "price": 2400 },
+    { "name": "Vuneni kaput", "category": "Kaputi", "price": 4500 }
+  ],
+  "stamp": "Polovno\nprovereno"
+}

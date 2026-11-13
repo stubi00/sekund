@@ -13,6 +13,17 @@ export interface CartItem {
   qty: number
 }
 
+export interface HeroCard {
+  name: string
+  category: string
+  price: number
+}
+
+export interface SiteSettings {
+  heroCards: HeroCard[]
+  stamp: string
+}
+
 export interface Order {
   id: string
   createdAt: string

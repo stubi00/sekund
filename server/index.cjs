@@ -10,6 +10,7 @@ const DIST = path.join(ROOT, 'dist')
 const DATA_DIR = path.join(ROOT, 'data')
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json')
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json')
+const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json')
 const ADMIN_PASSWORD = process.env.SEKUND_ADMIN_PASSWORD || 'sekund123'
 
 // --- arg parsing (--port / --host / env) ---
@@ -30,6 +31,10 @@ function ensureData() {
     fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(seed, null, 2))
   }
   if (!fs.existsSync(ORDERS_FILE)) fs.writeFileSync(ORDERS_FILE, '[]')
+  if (!fs.existsSync(SETTINGS_FILE)) {
+    const seed = require('./seed-settings.json')
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(seed, null, 2))
+  }
 }
 function readJson(file) {
   try {
@@ -169,6 +174,29 @@ app.delete('/api/orders/:id', requireAuth, (req, res) => {
   orders = orders.filter((o) => o.id !== req.params.id)
   writeJson(ORDERS_FILE, orders)
   res.json({ ok: true })
+})
+
+// --- settings (hero kartice) ---
+app.get('/api/settings', (_req, res) => {
+  res.json(readJson(SETTINGS_FILE))
+})
+
+app.put('/api/settings', requireAuth, (req, res) => {
+  const { heroCards, stamp } = req.body || {}
+  const cur = readJson(SETTINGS_FILE)
+  const next = {
+    heroCards:
+      Array.isArray(heroCards) && heroCards.length === 2
+        ? heroCards.map((c) => ({
+            name: String(c.name || '').trim(),
+            category: String(c.category || '').trim(),
+            price: Math.round(Number(c.price)) || 0,
+          }))
+        : cur.heroCards,
+    stamp: typeof stamp === 'string' && stamp.trim() ? stamp.trim() : cur.stamp,
+  }
+  writeJson(SETTINGS_FILE, next)
+  res.json(next)
 })
 
 // --- static frontend ---

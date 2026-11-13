@@ -1,6 +1,6 @@
 import '../App.css'
 import { useCallback, useEffect, useState } from 'react'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, LayoutPanelTop } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -19,11 +19,12 @@ import CartSheet from '@/sections/CartSheet'
 import AdminLogin from '@/sections/AdminLogin'
 import ProductForm from '@/sections/ProductForm'
 import OrdersDialog from '@/sections/OrdersDialog'
+import HeroForm from '@/sections/HeroForm'
 import Footer from '@/sections/Footer'
 import { useProducts } from '@/hooks/useProducts'
 import { useCart } from '@/hooks/useCart'
 import { api, clearToken, getToken } from '@/lib/api'
-import type { Order, Product } from '@/types'
+import type { Order, Product, SiteSettings } from '@/types'
 
 export default function Home() {
   const { products, loading, error, addProduct, updateProduct, removeProduct } =
@@ -31,13 +32,22 @@ export default function Home() {
   const cart = useCart()
 
   const [orders, setOrders] = useState<Order[]>([])
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
   const [isAdmin, setIsAdmin] = useState(() => getToken() !== null)
   const [cartOpen, setCartOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [ordersOpen, setOrdersOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
+  const [heroFormOpen, setHeroFormOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<Product | null>(null)
+
+  useEffect(() => {
+    api
+      .getSettings()
+      .then(setSettings)
+      .catch(() => setSettings(null))
+  }, [])
 
   const loadOrders = useCallback(async () => {
     try {
@@ -98,7 +108,7 @@ export default function Home() {
       />
 
       <main className="flex-1">
-        <Hero />
+        <Hero settings={settings} />
 
         {isAdmin && (
           <div className="border-b border-border bg-secondary/60">
@@ -107,14 +117,23 @@ export default function Home() {
                 Ulogovan si kao administrator — klikni olovku na kartici da
                 izmeniš cenu ili detalje.
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setOrdersOpen(true)}
-              >
-                <ClipboardList className="mr-1 h-4 w-4" /> Porudžbine (
-                {orders.length})
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setHeroFormOpen(true)}
+                >
+                  <LayoutPanelTop className="mr-1 h-4 w-4" /> Uredi početnu
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOrdersOpen(true)}
+                >
+                  <ClipboardList className="mr-1 h-4 w-4" /> Porudžbine (
+                  {orders.length})
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -187,6 +206,18 @@ export default function Home() {
         orders={orders}
         onDelete={handleDeleteOrder}
       />
+
+      {settings && (
+        <HeroForm
+          open={heroFormOpen}
+          onOpenChange={setHeroFormOpen}
+          settings={settings}
+          onSave={async (s) => {
+            const saved = await api.updateSettings(s)
+            setSettings(saved)
+          }}
+        />
+      )}
 
       <AlertDialog
         open={deleting !== null}

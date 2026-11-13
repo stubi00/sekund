@@ -1,7 +1,23 @@
 import { ArrowDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import type { SiteSettings } from '@/types'
+import { formatRsd } from '@/lib/format'
 
-export default function Hero() {
+const FALLBACK: SiteSettings = {
+  heroCards: [
+    { name: 'Denim jakna', category: 'Jakne', price: 2400 },
+    { name: 'Vuneni kaput', category: 'Kaputi', price: 4500 },
+  ],
+  stamp: 'Polovno\nprovereno',
+}
+
+interface Props {
+  settings?: SiteSettings | null
+}
+
+export default function Hero({ settings }: Props) {
+  const s = settings ?? FALLBACK
+  const [first, second] = s.heroCards
   return (
     <section
       id="pocetna"
@@ -33,26 +49,37 @@ export default function Hero() {
         </div>
 
         <div className="relative flex items-center justify-center">
-          <div className="tag-card w-56 rotate-[-4deg] rounded-lg border border-border bg-card p-5 shadow-lg">
-            <div className="mb-3 h-3 w-3 rounded-full border-2 border-primary" />
-            <p className="font-display text-lg font-semibold">Denim jakna</p>
-            <p className="text-sm text-muted-foreground">Jakne</p>
-            <p className="mt-3 font-display text-2xl font-bold text-primary">
-              2.400 RSD
-            </p>
-          </div>
-          <div className="tag-card -ml-10 mt-24 w-48 rotate-[5deg] rounded-lg border border-border bg-card p-5 shadow-lg">
-            <div className="mb-3 h-3 w-3 rounded-full border-2 border-primary" />
-            <p className="font-display text-lg font-semibold">Vuneni kaput</p>
-            <p className="text-sm text-muted-foreground">Kaputi</p>
-            <p className="mt-3 font-display text-2xl font-bold text-primary">
-              4.500 RSD
-            </p>
-          </div>
+          {first && (
+            <div className="tag-card w-56 rotate-[-4deg] rounded-lg border border-border bg-card p-5 shadow-lg">
+              <div className="mb-3 h-3 w-3 rounded-full border-2 border-primary" />
+              <p className="font-display text-lg font-semibold">{first.name}</p>
+              <p className="text-sm text-muted-foreground">{first.category}</p>
+              <p className="mt-3 font-display text-2xl font-bold text-primary">
+                {formatRsd(first.price)}
+              </p>
+            </div>
+          )}
+          {second && (
+            <div className="tag-card -ml-10 mt-24 w-48 rotate-[5deg] rounded-lg border border-border bg-card p-5 shadow-lg">
+              <div className="mb-3 h-3 w-3 rounded-full border-2 border-primary" />
+              <p className="font-display text-lg font-semibold">
+                {second.name}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {second.category}
+              </p>
+              <p className="mt-3 font-display text-2xl font-bold text-primary">
+                {formatRsd(second.price)}
+              </p>
+            </div>
+          )}
           <div className="stamp absolute -top-2 right-2 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-primary text-center font-display text-sm font-bold uppercase leading-tight text-primary md:right-8">
-            Polovno
-            <br />
-            provereno
+            {s.stamp.split('\n').map((line, i) => (
+              <span key={i}>
+                {line}
+                <br />
+              </span>
+            ))}
           </div>
         </div>
       </div>

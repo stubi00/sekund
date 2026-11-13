@@ -1,4 +1,4 @@
-import type { Order, Product } from '@/types'
+import type { Order, Product, SiteSettings } from '@/types'
 
 const TOKEN_KEY = 'sekund-token'
 
@@ -58,4 +58,10 @@ export const api = {
   getOrders: () => req<Order[]>('/api/orders'),
   deleteOrder: (id: string) =>
     req<{ ok: boolean }>(`/api/orders/${id}`, { method: 'DELETE' }),
+  getSettings: () => req<SiteSettings>('/api/settings'),
+  updateSettings: (s: SiteSettings) =>
+    req<SiteSettings>('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify(s),
+    }),
 }
