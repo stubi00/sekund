@@ -181,7 +181,11 @@ export default function CartSheet({
         )}
 
         {step === 'form' && (
-          <form onSubmit={submit} className="mt-4 flex flex-1 flex-col gap-4">
+          <form
+            onSubmit={submit}
+            className="mt-4 flex min-h-0 flex-1 flex-col gap-4"
+          >
+            <div className="flex-1 space-y-4 overflow-y-auto pr-1">
             <div className="space-y-2">
               <Label htmlFor="c-name">Ime i prezime *</Label>
               <Input
@@ -272,7 +276,8 @@ export default function CartSheet({
                 {error}
               </p>
             )}
-            <div className="mt-auto space-y-2 border-t border-border pt-4">
+            </div>
+            <div className="space-y-2 border-t border-border pt-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Ukupno</span>
                 <span className="font-display text-xl font-bold text-primary">
