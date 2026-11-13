@@ -1,0 +1,27 @@
+export interface Product {
+  id: string
+  name: string
+  price: number
+  category: string
+  description: string
+  imageUrl?: string
+  color: string
+}
+
+export interface CartItem {
+  product: Product
+  qty: number
+}
+
+export interface Order {
+  id: string
+  createdAt: string
+  customer: string
+  phone: string
+  address: string
+  city: string
+  note: string
+  payment: 'pouzece'
+  items: { name: string; price: number; qty: number }[]
+  total: number
+}

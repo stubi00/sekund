@@ -1,0 +1,82 @@
+[
+  {
+    "id": "p1",
+    "name": "Majica vintage print",
+    "price": 900,
+    "category": "Majice",
+    "description": "Pamuk, retro print, veličina M. Nošena par puta, kao nova.",
+    "color": "#c1502e"
+  },
+  {
+    "id": "p2",
+    "name": "Denim jakna klasik",
+    "price": 2400,
+    "category": "Jakne",
+    "description": "Original teksas jakna, veličina L, savršeno očuvana.",
+    "color": "#3c4a56"
+  },
+  {
+    "id": "p3",
+    "name": "Trenerka retro set",
+    "price": 1800,
+    "category": "Trenerke",
+    "description": "Gornji i donji deo, veličina M, udobna i bez habanja.",
+    "color": "#4a6b5d"
+  },
+  {
+    "id": "p4",
+    "name": "Dukserica sa kapuljačom",
+    "price": 1200,
+    "category": "Dukserice",
+    "description": "Debeli pamuk, veličina L, topla i očuvana.",
+    "color": "#7a4a56"
+  },
+  {
+    "id": "p5",
+    "name": "Vuneni kaput",
+    "price": 4500,
+    "category": "Kaputi",
+    "description": "Elegantan kaput od vune, veličina XL, kao iz butika.",
+    "color": "#22302a"
+  },
+  {
+    "id": "p6",
+    "name": "Farmerke Levi's 501",
+    "price": 2200,
+    "category": "Farmerke",
+    "description": "Original 501 model, W32 L34, lepo uležane.",
+    "color": "#3c4a56"
+  },
+  {
+    "id": "p7",
+    "name": "Majica basic bela",
+    "price": 600,
+    "category": "Majice",
+    "description": "Čist pamuk, veličina S, bez mrlja i habanja.",
+    "color": "#a8823f"
+  },
+  {
+    "id": "p8",
+    "name": "Bomber jakna",
+    "price": 2900,
+    "category": "Jakne",
+    "description": "Maslinasto zelena, veličina M, moderna i topla.",
+    "color": "#5d6b3f"
+  },
+  {
+    "id": "p9",
+    "name": "Dukserica bez kapuljače",
+    "price": 950,
+    "category": "Dukserice",
+    "description": "Klasik model, veličina M, mekana od pranja.",
+    "color": "#8a5a3b"
+  },
+  {
+    "id": "p10",
+    "name": "Farmerke crne",
+    "price": 1500,
+    "category": "Farmerke",
+    "description": "Slim kroj, W30 L32, skoro nenošene.",
+    "color": "#22302a"
+  }
+]
