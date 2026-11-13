@@ -2,6 +2,41 @@ import { useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
 
+// Smanji sliku pre uploada: max 1600px, JPEG ~0.85 kvalitet.
+// Telefonske fotke od 10+ MB padnu na par stotina KB.
+const MAX_DIM = 1600
+const QUALITY = 0.85
+
+function shrinkImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(img.src)
+      let { width, height } = img
+      if (width <= MAX_DIM && height <= MAX_DIM && file.size < 900 * 1024) {
+        // dovoljno mala — šalji original
+        const r = new FileReader()
+        r.onload = () => resolve(String(r.result))
+        r.onerror = reject
+        r.readAsDataURL(file)
+        return
+      }
+      const scale = Math.min(1, MAX_DIM / width, MAX_DIM / height)
+      width = Math.round(width * scale)
+      height = Math.round(height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject(new Error('canvas'))
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', QUALITY))
+    }
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export default function ImagePicker({
   id,
   image,
@@ -22,16 +57,11 @@ export default function ImagePicker({
     setErr('')
     setBusy(true)
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const r = new FileReader()
-        r.onload = () => resolve(String(r.result))
-        r.onerror = reject
-        r.readAsDataURL(file)
-      })
+      const dataUrl = await shrinkImage(file)
       const { url } = await api.uploadImage(dataUrl)
       onChange(url)
     } catch {
-      setErr('Upload nije uspeo (max 6 MB, jpg/png/webp).')
+      setErr('Upload nije uspeo — probaj drugu sliku.')
     } finally {
       setBusy(false)
       e.target.value = ''
