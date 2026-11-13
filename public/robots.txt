@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sekund.onrender.com/sitemap.xml
