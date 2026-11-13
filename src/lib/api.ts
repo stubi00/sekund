@@ -64,4 +64,9 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(s),
     }),
+  uploadImage: (dataUrl: string) =>
+    req<{ url: string }>('/api/upload', {
+      method: 'POST',
+      body: JSON.stringify({ dataUrl }),
+    }),
 }

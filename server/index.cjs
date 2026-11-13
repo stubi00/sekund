@@ -11,6 +11,7 @@ const DATA_DIR = path.join(ROOT, 'data')
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json')
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json')
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json')
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads')
 const ADMIN_PASSWORD = process.env.SEKUND_ADMIN_PASSWORD || 'sekund123'
 
 // --- arg parsing (--port / --host / env) ---
@@ -35,6 +36,7 @@ function ensureData() {
     const seed = require('./seed-settings.json')
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(seed, null, 2))
   }
+  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true })
 }
 function readJson(file) {
   try {
@@ -64,7 +66,7 @@ function requireAuth(req, res, next) {
 
 ensureData()
 const app = express()
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: '8mb' }))
 
 // --- auth ---
 app.post('/api/login', (req, res) => {
@@ -176,6 +178,29 @@ app.delete('/api/orders/:id', requireAuth, (req, res) => {
   res.json({ ok: true })
 })
 
+// --- upload slika (admin) ---
+const MIME_EXT = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+}
+app.post('/api/upload', requireAuth, (req, res) => {
+  const { dataUrl } = req.body || {}
+  const m = /^data:(image\/[a-z]+);base64,(.+)$/.exec(dataUrl || '')
+  if (!m || !MIME_EXT[m[1]]) {
+    return res.status(400).json({ error: 'Nepodržan format slike.' })
+  }
+  const buf = Buffer.from(m[2], 'base64')
+  if (buf.length > 6 * 1024 * 1024) {
+    return res.status(400).json({ error: 'Slika je prevelika (max 6 MB).' })
+  }
+  const name = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${MIME_EXT[m[1]]}`
+  fs.writeFileSync(path.join(UPLOADS_DIR, name), buf)
+  res.status(201).json({ url: `/uploads/${name}` })
+})
+app.use('/uploads', express.static(UPLOADS_DIR))
+
 // --- settings (hero kartice) ---
 app.get('/api/settings', (_req, res) => {
   res.json(readJson(SETTINGS_FILE))
@@ -191,6 +216,7 @@ app.put('/api/settings', requireAuth, (req, res) => {
             name: String(c.name || '').trim(),
             category: String(c.category || '').trim(),
             price: Math.round(Number(c.price)) || 0,
+            ...(c.imageUrl ? { imageUrl: String(c.imageUrl).trim() } : {}),
           }))
         : cur.heroCards,
     stamp: typeof stamp === 'string' && stamp.trim() ? stamp.trim() : cur.stamp,

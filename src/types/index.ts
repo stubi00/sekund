@@ -17,6 +17,7 @@ export interface HeroCard {
   name: string
   category: string
   price: number
+  imageUrl?: string
 }
 
 export interface SiteSettings {

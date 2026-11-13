@@ -50,27 +50,53 @@ export default function Hero({ settings }: Props) {
 
         <div className="relative flex items-center justify-center">
           {first && (
-            <div className="tag-card w-56 rotate-[-4deg] rounded-lg border border-border bg-card p-5 shadow-lg">
-              <div className="mb-3 h-3 w-3 rounded-full border-2 border-primary" />
-              <p className="font-display text-lg font-semibold">{first.name}</p>
-              <p className="text-sm text-muted-foreground">{first.category}</p>
-              <p className="mt-3 font-display text-2xl font-bold text-primary">
-                {formatRsd(first.price)}
-              </p>
+            <div className="tag-card w-56 rotate-[-4deg] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+              {first.imageUrl && (
+                <img
+                  src={first.imageUrl}
+                  alt={first.name}
+                  className="h-32 w-full object-cover"
+                />
+              )}
+              <div className="p-5">
+                {!first.imageUrl && (
+                  <div className="mb-3 h-3 w-3 rounded-full border-2 border-primary" />
+                )}
+                <p className="font-display text-lg font-semibold">
+                  {first.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {first.category}
+                </p>
+                <p className="mt-3 font-display text-2xl font-bold text-primary">
+                  {formatRsd(first.price)}
+                </p>
+              </div>
             </div>
           )}
           {second && (
-            <div className="tag-card -ml-10 mt-24 w-48 rotate-[5deg] rounded-lg border border-border bg-card p-5 shadow-lg">
-              <div className="mb-3 h-3 w-3 rounded-full border-2 border-primary" />
-              <p className="font-display text-lg font-semibold">
-                {second.name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {second.category}
-              </p>
-              <p className="mt-3 font-display text-2xl font-bold text-primary">
-                {formatRsd(second.price)}
-              </p>
+            <div className="tag-card -ml-10 mt-24 w-48 rotate-[5deg] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+              {second.imageUrl && (
+                <img
+                  src={second.imageUrl}
+                  alt={second.name}
+                  className="h-28 w-full object-cover"
+                />
+              )}
+              <div className="p-5">
+                {!second.imageUrl && (
+                  <div className="mb-3 h-3 w-3 rounded-full border-2 border-primary" />
+                )}
+                <p className="font-display text-lg font-semibold">
+                  {second.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {second.category}
+                </p>
+                <p className="mt-3 font-display text-2xl font-bold text-primary">
+                  {formatRsd(second.price)}
+                </p>
+              </div>
             </div>
           )}
           <div className="stamp absolute -top-2 right-2 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-primary text-center font-display text-sm font-bold uppercase leading-tight text-primary md:right-8">
