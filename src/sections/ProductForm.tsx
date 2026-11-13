@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { Product } from '@/types'
+import ImagePicker from '@/components/ImagePicker'
 
 const PALETTE = [
   '#8a5a3b',
@@ -123,8 +124,14 @@ export default function ProductForm({
               placeholder="Kratak opis stanja i detalja"
             />
           </div>
+          <ImagePicker
+            id="p-image-file"
+            image={imageUrl}
+            onChange={setImageUrl}
+            label="Slika artikla (slikaj telefonom ili ubaci fajl)"
+          />
           <div className="space-y-2">
-            <Label htmlFor="p-image">URL slike (opciono)</Label>
+            <Label htmlFor="p-image">ili URL slike (opciono)</Label>
             <Input
               id="p-image"
               value={imageUrl}
