@@ -5,6 +5,7 @@ export interface Product {
   category: string
   description: string
   imageUrl?: string
+  images?: string[]
   color: string
 }
 
@@ -23,6 +24,7 @@ export interface HeroCard {
 export interface SiteSettings {
   heroCards: HeroCard[]
   stamp: string
+  aboutText?: string
 }
 
 export interface Order {

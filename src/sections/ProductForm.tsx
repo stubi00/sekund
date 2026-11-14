@@ -10,7 +10,92 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { Product } from '@/types'
-import ImagePicker from '@/components/ImagePicker'
+import { api } from '@/lib/api'
+import { shrinkImage } from '@/lib/image'
+
+const MAX_IMAGES = 6
+
+function MultiImagePicker({
+  images,
+  onChange,
+}: {
+  images: string[]
+  onChange: (imgs: string[]) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(
+      0,
+      MAX_IMAGES - images.length,
+    )
+    if (!files.length) return
+    setErr('')
+    setBusy(true)
+    try {
+      const urls: string[] = []
+      for (const f of files) {
+        const dataUrl = await shrinkImage(f)
+        const { url } = await api.uploadImage(dataUrl)
+        urls.push(url)
+      }
+      onChange([...images, ...urls])
+    } catch {
+      setErr('Upload nije uspeo — probaj drugu sliku.')
+    } finally {
+      setBusy(false)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>
+        Slike artikla (do {MAX_IMAGES}) — prva slika je glavna
+      </Label>
+      <div className="flex flex-wrap gap-2">
+        {images.map((u, i) => (
+          <div key={u + i} className="relative">
+            <img
+              src={u}
+              alt={`Slika ${i + 1}`}
+              className="h-20 w-20 rounded-md border border-border object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => onChange(images.filter((_, j) => j !== i))}
+              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground"
+              aria-label={`Ukloni sliku ${i + 1}`}
+            >
+              ×
+            </button>
+            {i === 0 && (
+              <span className="absolute bottom-0 left-0 right-0 rounded-b-md bg-primary/90 py-0.5 text-center text-[10px] font-semibold text-primary-foreground">
+                GLAVNA
+              </span>
+            )}
+          </div>
+        ))}
+        {images.length < MAX_IMAGES && (
+          <label
+            className={`flex h-20 w-20 cursor-pointer items-center justify-center rounded-md border border-dashed border-border text-center text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary ${busy ? 'pointer-events-none opacity-50' : ''}`}
+          >
+            {busy ? 'Šaljem…' : '+ Slika'}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              className="hidden"
+              onChange={pick}
+            />
+          </label>
+        )}
+      </div>
+      {err && <p className="text-xs text-destructive">{err}</p>}
+    </div>
+  )
+}
 
 const PALETTE = [
   '#8a5a3b',
@@ -40,7 +125,7 @@ export default function ProductForm({
   const [price, setPrice] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
+  const [images, setImages] = useState<string[]>([])
   const [color, setColor] = useState(PALETTE[0])
   const [error, setError] = useState('')
 
@@ -50,7 +135,13 @@ export default function ProductForm({
       setPrice(editing ? String(editing.price) : '')
       setCategory(editing?.category ?? '')
       setDescription(editing?.description ?? '')
-      setImageUrl(editing?.imageUrl ?? '')
+      setImages(
+        editing?.images?.length
+          ? editing.images
+          : editing?.imageUrl
+            ? [editing.imageUrl]
+            : [],
+      )
       setColor(editing?.color ?? PALETTE[0])
       setError('')
     }
@@ -69,7 +160,7 @@ export default function ProductForm({
         price: Math.round(priceNum),
         category: category.trim(),
         description: description.trim(),
-        imageUrl: imageUrl.trim() || undefined,
+        images,
         color,
       },
       editing?.id,
@@ -124,21 +215,7 @@ export default function ProductForm({
               placeholder="Kratak opis stanja i detalja"
             />
           </div>
-          <ImagePicker
-            id="p-image-file"
-            image={imageUrl}
-            onChange={setImageUrl}
-            label="Slika artikla (slikaj telefonom ili ubaci fajl)"
-          />
-          <div className="space-y-2">
-            <Label htmlFor="p-image">ili URL slike (opciono)</Label>
-            <Input
-              id="p-image"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://…"
-            />
-          </div>
+          <MultiImagePicker images={images} onChange={setImages} />
           <div className="space-y-2">
             <Label>Boja kartice</Label>
             <div className="flex flex-wrap gap-2">

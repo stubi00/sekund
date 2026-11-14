@@ -82,11 +82,22 @@ app.get('/api/products', (_req, res) => {
   res.json(readJson(PRODUCTS_FILE))
 })
 
+function cleanImages(images) {
+  if (!Array.isArray(images)) return []
+  return images
+    .filter((u) => typeof u === 'string' && u.trim())
+    .slice(0, 6)
+    .map((u) => u.trim())
+}
+
 app.post('/api/products', requireAuth, (req, res) => {
-  const { name, price, category, description, imageUrl, color } = req.body || {}
+  const { name, price, category, description, imageUrl, images, color } =
+    req.body || {}
   if (!name || !category || !(Number(price) > 0)) {
     return res.status(400).json({ error: 'Naziv, kategorija i cena su obavezni.' })
   }
+  const imgs = cleanImages(images)
+  const primary = imgs[0] || (imageUrl ? String(imageUrl).trim() : undefined)
   const products = readJson(PRODUCTS_FILE)
   const product = {
     id: `p-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
@@ -96,7 +107,8 @@ app.post('/api/products', requireAuth, (req, res) => {
     description: String(description || '').trim(),
     color: color || '#8a5a3b',
   }
-  if (imageUrl) product.imageUrl = String(imageUrl).trim()
+  if (primary) product.imageUrl = primary
+  if (imgs.length) product.images = imgs
   products.unshift(product)
   writeJson(PRODUCTS_FILE, products)
   res.status(201).json(product)
@@ -106,17 +118,25 @@ app.put('/api/products/:id', requireAuth, (req, res) => {
   const products = readJson(PRODUCTS_FILE)
   const idx = products.findIndex((p) => p.id === req.params.id)
   if (idx === -1) return res.status(404).json({ error: 'Artikal ne postoji.' })
-  const { name, price, category, description, imageUrl, color } = req.body || {}
+  const { name, price, category, description, imageUrl, images, color } =
+    req.body || {}
   const cur = products[idx]
-  products[idx] = {
+  const next = {
     ...cur,
     ...(name !== undefined && { name: String(name).trim() }),
     ...(price !== undefined && { price: Math.round(Number(price)) }),
     ...(category !== undefined && { category: String(category).trim() }),
     ...(description !== undefined && { description: String(description).trim() }),
     ...(color !== undefined && { color }),
-    imageUrl: imageUrl ? String(imageUrl).trim() : undefined,
   }
+  if (images !== undefined) {
+    const imgs = cleanImages(images)
+    next.images = imgs
+    next.imageUrl = imgs[0]
+  } else {
+    next.imageUrl = imageUrl ? String(imageUrl).trim() : undefined
+  }
+  products[idx] = next
   if (!(products[idx].price > 0))
     return res.status(400).json({ error: 'Cena mora biti veća od nule.' })
   writeJson(PRODUCTS_FILE, products)
@@ -207,7 +227,7 @@ app.get('/api/settings', (_req, res) => {
 })
 
 app.put('/api/settings', requireAuth, (req, res) => {
-  const { heroCards, stamp } = req.body || {}
+  const { heroCards, stamp, aboutText } = req.body || {}
   const cur = readJson(SETTINGS_FILE)
   const next = {
     heroCards:
@@ -220,6 +240,8 @@ app.put('/api/settings', requireAuth, (req, res) => {
           }))
         : cur.heroCards,
     stamp: typeof stamp === 'string' && stamp.trim() ? stamp.trim() : cur.stamp,
+    aboutText:
+      typeof aboutText === 'string' ? aboutText.trim() : (cur.aboutText ?? ''),
   }
   writeJson(SETTINGS_FILE, next)
   res.json(next)

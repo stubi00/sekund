@@ -49,6 +49,9 @@ export default function Header({
           <a href="#katalog" className="transition-colors hover:text-primary">
             Katalog
           </a>
+          <a href="#o-nama" className="transition-colors hover:text-primary">
+            O nama
+          </a>
           <a href="#kontakt" className="transition-colors hover:text-primary">
             Kontakt
           </a>

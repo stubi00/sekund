@@ -12,6 +12,7 @@ interface Props {
   onAdd: (p: Product) => void
   onEdit: (p: Product) => void
   onDelete: (p: Product) => void
+  onView: (p: Product) => void
 }
 
 export default function ProductCard({
@@ -21,19 +22,26 @@ export default function ProductCard({
   onAdd,
   onEdit,
   onDelete,
+  onView,
 }: Props) {
+  const primaryImage = product.images?.[0] || product.imageUrl
   return (
     <Card
       className="card-enter group flex flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-md"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
       <div
-        className="relative flex h-40 items-center justify-center overflow-hidden"
+        className="relative flex h-40 cursor-pointer items-center justify-center overflow-hidden"
         style={{ backgroundColor: product.color }}
+        onClick={() => onView(product)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && onView(product)}
+        aria-label={`Detalji: ${product.name}`}
       >
-        {product.imageUrl ? (
+        {primaryImage ? (
           <img
-            src={product.imageUrl}
+            src={primaryImage}
             alt={product.name}
             className="product-img h-full w-full object-cover"
             loading="lazy"
@@ -55,7 +63,10 @@ export default function ProductCard({
               size="icon"
               variant="secondary"
               className="h-8 w-8"
-              onClick={() => onEdit(product)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit(product)
+              }}
               aria-label={`Izmeni ${product.name}`}
             >
               <Pencil className="h-4 w-4" />
@@ -64,7 +75,10 @@ export default function ProductCard({
               size="icon"
               variant="destructive"
               className="h-8 w-8"
-              onClick={() => onDelete(product)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(product)
+              }}
               aria-label={`Obriši ${product.name}`}
             >
               <Trash2 className="h-4 w-4" />
@@ -72,7 +86,10 @@ export default function ProductCard({
           </div>
         )}
       </div>
-      <CardContent className="flex flex-1 flex-col gap-1 p-4">
+      <CardContent
+        className="flex flex-1 cursor-pointer flex-col gap-1 p-4"
+        onClick={() => onView(product)}
+      >
         <h3 className="font-display text-lg font-semibold leading-snug">
           {product.name}
         </h3>

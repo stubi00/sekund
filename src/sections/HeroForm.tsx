@@ -30,6 +30,7 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
   const [firstImage, setFirstImage] = useState('')
   const [secondImage, setSecondImage] = useState('')
   const [stamp, setStamp] = useState('')
+  const [aboutText, setAboutText] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -45,6 +46,7 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
       setSecondPrice(b ? String(b.price) : '')
       setSecondImage(b?.imageUrl ?? '')
       setStamp(settings.stamp)
+      setAboutText(settings.aboutText ?? '')
       setError('')
     }
   }, [open, settings])
@@ -76,6 +78,7 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
           },
         ],
         stamp: stamp.trim(),
+        aboutText: aboutText.trim(),
       })
       onOpenChange(false)
     } catch {
@@ -175,6 +178,19 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
               value={stamp}
               onChange={(e) => setStamp(e.target.value)}
               placeholder="Polovno&#10;provereno"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="h-about">
+              Tekst za stranicu „O nama" (prazan red = novi pasus)
+            </Label>
+            <Textarea
+              id="h-about"
+              rows={6}
+              value={aboutText}
+              onChange={(e) => setAboutText(e.target.value)}
+              placeholder="Upiši priču svoje radnje…"
             />
           </div>
 

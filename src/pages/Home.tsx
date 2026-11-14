@@ -20,6 +20,8 @@ import AdminLogin from '@/sections/AdminLogin'
 import ProductForm from '@/sections/ProductForm'
 import OrdersDialog from '@/sections/OrdersDialog'
 import HeroForm from '@/sections/HeroForm'
+import AboutSection from '@/sections/AboutSection'
+import ProductDialog from '@/sections/ProductDialog'
 import Footer from '@/sections/Footer'
 import { useProducts } from '@/hooks/useProducts'
 import { useCart } from '@/hooks/useCart'
@@ -41,6 +43,7 @@ export default function Home() {
   const [heroFormOpen, setHeroFormOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<Product | null>(null)
+  const [viewing, setViewing] = useState<Product | null>(null)
 
   useEffect(() => {
     api
@@ -164,15 +167,27 @@ export default function Home() {
               setFormOpen(true)
             }}
             onDelete={setDeleting}
+            onView={setViewing}
             onNewProduct={() => {
               setEditing(null)
               setFormOpen(true)
             }}
           />
         )}
+
+        <AboutSection text={settings?.aboutText} />
       </main>
 
       <Footer />
+
+      <ProductDialog
+        product={viewing}
+        onClose={() => setViewing(null)}
+        onAdd={(p) => {
+          cart.add(p)
+          setCartOpen(true)
+        }}
+      />
 
       <CartSheet
         open={cartOpen}

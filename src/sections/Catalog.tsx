@@ -12,6 +12,7 @@ interface Props {
   onEdit: (p: Product) => void
   onDelete: (p: Product) => void
   onNewProduct: () => void
+  onView: (p: Product) => void
 }
 
 export default function Catalog({
@@ -21,6 +22,7 @@ export default function Catalog({
   onEdit,
   onDelete,
   onNewProduct,
+  onView,
 }: Props) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string>('Sve')
@@ -113,6 +115,7 @@ export default function Catalog({
               onAdd={onAdd}
               onEdit={onEdit}
               onDelete={onDelete}
+              onView={onView}
             />
           ))}
         </div>
