@@ -4,6 +4,7 @@ const express = require('express')
 const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
+const nodemailer = require('nodemailer')
 
 const ROOT = path.join(__dirname, '..')
 const DIST = path.join(ROOT, 'dist')
@@ -13,6 +14,56 @@ const ORDERS_FILE = path.join(DATA_DIR, 'orders.json')
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json')
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads')
 const ADMIN_PASSWORD = process.env.SEKUND_ADMIN_PASSWORD || 'sekund123'
+
+// --- mejl obaveštenja o porudžbinama ---
+const GMAIL_USER = process.env.GMAIL_USER
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD
+const ORDER_EMAIL_TO = process.env.ORDER_EMAIL_TO || 'Sekund.hendd@gmail.com'
+const mailer =
+  GMAIL_USER && GMAIL_APP_PASSWORD
+    ? nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+      })
+    : null
+
+function rsd(n) {
+  return `${Number(n).toLocaleString('sr-RS')} RSD`
+}
+
+function sendOrderEmail(order) {
+  if (!mailer) return // bez podešenih kredencijala samo preskoči
+  const items = order.items
+    .map((i) => `• ${i.qty} × ${i.name} — ${rsd(i.price)}`)
+    .join('\n')
+  const text = [
+    `Nova porudžbina na Sekund sajtu!`,
+    ``,
+    `Kupac: ${order.customer}`,
+    `Telefon: ${order.phone}`,
+    `Adresa: ${order.address}`,
+    `Grad: ${order.city}`,
+    order.note ? `Napomena: ${order.note}` : null,
+    ``,
+    `Artikli:`,
+    items,
+    ``,
+    `Ukupno: ${rsd(order.total)}`,
+    `Plaćanje: pouzećem`,
+    ``,
+    `Vreme: ${new Date(order.createdAt).toLocaleString('sr-RS')}`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+  mailer
+    .sendMail({
+      from: `"Sekund sajt" <${GMAIL_USER}>`,
+      to: ORDER_EMAIL_TO,
+      subject: `🛍 Nova porudžbina — ${order.customer} (${rsd(order.total)})`,
+      text,
+    })
+    .catch((err) => console.error('Mejl nije poslat:', err.message))
+}
 
 // --- arg parsing (--port / --host / env) ---
 function argValue(name) {
@@ -184,6 +235,7 @@ app.post('/api/orders', (req, res) => {
   }
   orders.unshift(order)
   writeJson(ORDERS_FILE, orders)
+  sendOrderEmail(order)
   res.status(201).json({ ok: true, id: order.id })
 })
 
