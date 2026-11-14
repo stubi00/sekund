@@ -8,6 +8,7 @@ import { formatRsd } from '@/lib/format'
 interface Props {
   product: Product
   isAdmin: boolean
+  index?: number
   onAdd: (p: Product) => void
   onEdit: (p: Product) => void
   onDelete: (p: Product) => void
@@ -16,21 +17,25 @@ interface Props {
 export default function ProductCard({
   product,
   isAdmin,
+  index = 0,
   onAdd,
   onEdit,
   onDelete,
 }: Props) {
   return (
-    <Card className="group flex flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-md">
+    <Card
+      className="card-enter group flex flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-md"
+      style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
+    >
       <div
-        className="relative flex h-40 items-center justify-center"
+        className="relative flex h-40 items-center justify-center overflow-hidden"
         style={{ backgroundColor: product.color }}
       >
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
             alt={product.name}
-            className="h-full w-full object-cover"
+            className="product-img h-full w-full object-cover"
             loading="lazy"
           />
         ) : (

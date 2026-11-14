@@ -104,11 +104,12 @@ export default function Catalog({
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p) => (
+          {filtered.map((p, i) => (
             <ProductCard
               key={p.id}
               product={p}
               isAdmin={isAdmin}
+              index={i}
               onAdd={onAdd}
               onEdit={onEdit}
               onDelete={onDelete}

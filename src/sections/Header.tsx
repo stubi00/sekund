@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { ShoppingBasket, Lock, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -16,8 +17,19 @@ export default function Header({
   onAdminClick,
   onAdminLogout,
 }: Props) {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
+    <header
+      className={`sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur transition-shadow duration-200 ${scrolled ? 'header-scrolled' : ''}`}
+    >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <a href="#pocetna" className="flex items-center gap-2">
           <img
@@ -60,7 +72,10 @@ export default function Header({
           <Button onClick={onCartOpen} size="sm" className="relative">
             <ShoppingBasket className="mr-1 h-4 w-4" /> Korpa
             {cartCount > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground">
+              <span
+                key={cartCount}
+                className="badge-pop absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground"
+              >
                 {cartCount}
               </span>
             )}
