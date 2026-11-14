@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { ShoppingBasket, Lock, LogOut, ChevronDown, ChevronRight } from 'lucide-react'
+import {
+  ShoppingBasket,
+  Lock,
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Menu,
+  X,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -24,6 +32,14 @@ export default function Header({
   onAdminLogout,
 }: Props) {
   const [scrolled, setScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [expandedGender, setExpandedGender] = useState<string | null>(null)
+
+  const pickMobile = (gender: string, category: string | null) => {
+    setMobileOpen(false)
+    setExpandedGender(null)
+    onPick(gender, category)
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -110,6 +126,16 @@ export default function Header({
         </nav>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-label={mobileOpen ? 'Zatvori meni' : 'Otvori meni'}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
           {isAdmin && (
             <span className="hidden rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground sm:inline">
               Admin režim
@@ -137,6 +163,84 @@ export default function Header({
           </Button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-background md:hidden">
+          <div className="mx-auto max-w-6xl space-y-1 px-4 py-4 text-sm font-medium">
+            <a
+              href="#pocetna"
+              onClick={() => setMobileOpen(false)}
+              className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
+            >
+              Početna
+            </a>
+
+            <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Prodavnica
+            </p>
+            {genders.map((g) => (
+              <div key={g}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedGender(expandedGender === g ? null : g)
+                  }
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
+                  aria-expanded={expandedGender === g}
+                >
+                  {g}
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${expandedGender === g ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {expandedGender === g && (
+                  <div className="ml-3 space-y-0.5 border-l-2 border-border pl-3">
+                    <button
+                      type="button"
+                      onClick={() => pickMobile(g, null)}
+                      className="block w-full rounded-lg px-3 py-2 text-left font-semibold transition-colors hover:bg-secondary"
+                    >
+                      Sve — {g.toLowerCase()}
+                    </button>
+                    {categories.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => pickMobile(g, c)}
+                        className="block w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-secondary"
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <a
+              href="#katalog"
+              onClick={() => setMobileOpen(false)}
+              className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
+            >
+              Katalog
+            </a>
+            <a
+              href="#o-nama"
+              onClick={() => setMobileOpen(false)}
+              className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
+            >
+              O nama
+            </a>
+            <a
+              href="#kontakt"
+              onClick={() => setMobileOpen(false)}
+              className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
+            >
+              Kontakt
+            </a>
+          </div>
+        </nav>
+      )}
     </header>
   )
 }
