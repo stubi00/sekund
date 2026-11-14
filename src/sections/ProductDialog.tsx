@@ -114,9 +114,16 @@ export default function ProductDialog({ product, onClose, onAdd }: Props) {
 
           {/* Detalji */}
           <div className="flex flex-col p-6">
-            <Badge className="w-fit bg-secondary text-secondary-foreground hover:bg-secondary">
-              {product.category}
-            </Badge>
+            <div className="flex gap-2">
+              <Badge className="w-fit bg-secondary text-secondary-foreground hover:bg-secondary">
+                {product.category}
+              </Badge>
+              {product.size && (
+                <Badge className="w-fit bg-primary text-primary-foreground hover:bg-primary">
+                  Veličina {product.size}
+                </Badge>
+              )}
+            </div>
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight">
               {product.name}
             </h2>

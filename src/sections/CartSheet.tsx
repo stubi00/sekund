@@ -68,6 +68,7 @@ export default function CartSheet({
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{i.product.name}</p>
                   <p className="text-sm text-muted-foreground">
+                    {i.product.size ? `Vel. ${i.product.size} · ` : ''}
                     {formatRsd(i.product.price)}
                   </p>
                 </div>

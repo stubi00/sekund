@@ -142,7 +142,7 @@ function cleanImages(images) {
 }
 
 app.post('/api/products', requireAuth, (req, res) => {
-  const { name, price, category, description, imageUrl, images, color } =
+  const { name, price, category, size, description, imageUrl, images, color } =
     req.body || {}
   if (!name || !category || !(Number(price) > 0)) {
     return res.status(400).json({ error: 'Naziv, kategorija i cena su obavezni.' })
@@ -158,6 +158,7 @@ app.post('/api/products', requireAuth, (req, res) => {
     description: String(description || '').trim(),
     color: color || '#8a5a3b',
   }
+  if (size && String(size).trim()) product.size = String(size).trim()
   if (primary) product.imageUrl = primary
   if (imgs.length) product.images = imgs
   products.unshift(product)
@@ -169,7 +170,7 @@ app.put('/api/products/:id', requireAuth, (req, res) => {
   const products = readJson(PRODUCTS_FILE)
   const idx = products.findIndex((p) => p.id === req.params.id)
   if (idx === -1) return res.status(404).json({ error: 'Artikal ne postoji.' })
-  const { name, price, category, description, imageUrl, images, color } =
+  const { name, price, category, size, description, imageUrl, images, color } =
     req.body || {}
   const cur = products[idx]
   const next = {
@@ -179,6 +180,11 @@ app.put('/api/products/:id', requireAuth, (req, res) => {
     ...(category !== undefined && { category: String(category).trim() }),
     ...(description !== undefined && { description: String(description).trim() }),
     ...(color !== undefined && { color }),
+  }
+  if (size !== undefined) {
+    const s = String(size).trim()
+    if (s) next.size = s
+    else delete next.size
   }
   if (images !== undefined) {
     const imgs = cleanImages(images)

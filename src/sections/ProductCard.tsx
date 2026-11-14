@@ -57,9 +57,16 @@ export default function ProductCard({
         <span className="card-view-hint absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-black/55 to-transparent pb-2 pt-6 text-xs font-semibold uppercase tracking-wider text-white">
           Pogledaj artikal
         </span>
-        <Badge className="absolute left-3 top-3 bg-background/90 text-foreground shadow-sm hover:bg-background/90">
-          {product.category}
-        </Badge>
+        <div className="absolute left-3 top-3 flex gap-1.5">
+          <Badge className="bg-background/90 text-foreground shadow-sm hover:bg-background/90">
+            {product.category}
+          </Badge>
+          {product.size && (
+            <Badge className="bg-primary/90 text-primary-foreground shadow-sm hover:bg-primary/90">
+              {product.size}
+            </Badge>
+          )}
+        </div>
         {isAdmin && (
           <div className="absolute right-2 top-2 flex gap-1">
             <Button

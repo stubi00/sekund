@@ -39,7 +39,9 @@ export default function Checkout() {
         note: note.trim(),
         payment: 'pouzece',
         items: cart.items.map((i) => ({
-          name: i.product.name,
+          name: i.product.size
+            ? `${i.product.name} (vel. ${i.product.size})`
+            : i.product.name,
           price: i.product.price,
           qty: i.qty,
         })),
@@ -245,6 +247,7 @@ export default function Checkout() {
                           {i.product.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
+                          {i.product.size ? `Vel. ${i.product.size} · ` : ''}
                           {i.qty} × {formatRsd(i.product.price)}
                         </p>
                       </div>

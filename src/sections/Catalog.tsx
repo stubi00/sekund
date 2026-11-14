@@ -26,22 +26,38 @@ export default function Catalog({
 }: Props) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string>('Sve')
+  const [size, setSize] = useState<string>('Sve')
+  const [sort, setSort] = useState<'default' | 'asc' | 'desc'>('default')
 
   const categories = useMemo(
     () => ['Sve', ...Array.from(new Set(products.map((p) => p.category)))],
     [products],
   )
 
+  const sizes = useMemo(
+    () => [
+      'Sve',
+      ...Array.from(
+        new Set(products.map((p) => p.size).filter((s): s is string => !!s)),
+      ),
+    ],
+    [products],
+  )
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return products.filter(
+    const list = products.filter(
       (p) =>
         (category === 'Sve' || p.category === category) &&
+        (size === 'Sve' || p.size === size) &&
         (q === '' ||
           p.name.toLowerCase().includes(q) ||
           p.description.toLowerCase().includes(q)),
     )
-  }, [products, query, category])
+    if (sort === 'asc') return [...list].sort((a, b) => a.price - b.price)
+    if (sort === 'desc') return [...list].sort((a, b) => b.price - a.price)
+    return list
+  }, [products, query, category, size, sort])
 
   return (
     <section id="katalog" className="mx-auto max-w-6xl px-4 py-16">
@@ -90,6 +106,32 @@ export default function Catalog({
             </button>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {sizes.length > 1 && (
+            <select
+              value={size}
+              onChange={(e) => setSize(e.target.value)}
+              className="h-9 rounded-md border border-border bg-card px-3 text-sm font-medium transition-colors hover:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+              aria-label="Filter po veličini"
+            >
+              {sizes.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'Sve' ? 'Sve veličine' : `Veličina ${s}`}
+                </option>
+              ))}
+            </select>
+          )}
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as 'default' | 'asc' | 'desc')}
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm font-medium transition-colors hover:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+            aria-label="Sortiranje"
+          >
+            <option value="default">Podrazumevano</option>
+            <option value="asc">Cena: od najniže</option>
+            <option value="desc">Cena: od najviše</option>
+          </select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -101,6 +143,8 @@ export default function Catalog({
               onClick={() => {
                 setQuery('')
                 setCategory('Sve')
+                setSize('Sve')
+                setSort('default')
               }}
             >
               Poništi pretragu

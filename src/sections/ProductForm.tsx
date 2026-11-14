@@ -124,6 +124,7 @@ export default function ProductForm({
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [category, setCategory] = useState('')
+  const [size, setSize] = useState('')
   const [description, setDescription] = useState('')
   const [images, setImages] = useState<string[]>([])
   const [color, setColor] = useState(PALETTE[0])
@@ -134,6 +135,7 @@ export default function ProductForm({
       setName(editing?.name ?? '')
       setPrice(editing ? String(editing.price) : '')
       setCategory(editing?.category ?? '')
+      setSize(editing?.size ?? '')
       setDescription(editing?.description ?? '')
       setImages(
         editing?.images?.length
@@ -159,6 +161,7 @@ export default function ProductForm({
         name: name.trim(),
         price: Math.round(priceNum),
         category: category.trim(),
+        size: size.trim(),
         description: description.trim(),
         images,
         color,
@@ -205,6 +208,15 @@ export default function ProductForm({
                 placeholder="npr. Dom"
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="p-size">Veličina</Label>
+            <Input
+              id="p-size"
+              value={size}
+              onChange={(e) => setSize(e.target.value)}
+              placeholder="npr. M, L, 42, W30 L32"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="p-desc">Opis</Label>
