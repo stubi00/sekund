@@ -21,30 +21,56 @@ export default function Hero({ settings }: Props) {
   return (
     <section
       id="pocetna"
-      className="relative overflow-hidden border-b border-border"
+      className="hero-glow relative overflow-hidden border-b border-border"
     >
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
+      <div
+        className="hero-blob left-[-6rem] top-[-4rem] h-72 w-72 bg-primary/15"
+        aria-hidden
+      />
+      <div
+        className="hero-blob bottom-[-6rem] right-[10%] h-80 w-80 bg-accent/15"
+        aria-hidden
+      />
+      <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
         <div className="flex flex-col justify-center">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+          <p
+            className="hero-rise mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-primary"
+            style={{ animationDelay: '60ms' }}
+          >
             Prodavnica polovne garderobe
           </p>
-          <h1 className="font-display text-5xl font-bold leading-[1.05] tracking-tight md:text-6xl">
+          <h1
+            className="hero-rise font-display text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl"
+            style={{ animationDelay: '140ms' }}
+          >
             Sve dobija
             <br />
-            drugu šansu.
+            <span className="italic text-primary">drugu šansu.</span>
           </h1>
-          <p className="mt-6 max-w-[60ch] text-lg leading-relaxed text-muted-foreground">
+          <p
+            className="hero-rise mt-6 max-w-[60ch] text-lg leading-relaxed text-muted-foreground"
+            style={{ animationDelay: '220ms' }}
+          >
             Svaka stvar kod nas ima svoju priču — pažljivo biramo polovnu
             garderobu koja još ima mnogo toga da ponudi. Oprano, provereno i
             spremno za novog vlasnika. Dođi, pronađi nešto svoje i daj joj
             drugu šansu.
           </p>
-          <div className="mt-8">
-            <Button size="lg" asChild>
+          <div
+            className="hero-rise mt-8 flex flex-wrap items-center gap-4"
+            style={{ animationDelay: '300ms' }}
+          >
+            <Button size="lg" className="btn-lift" asChild>
               <a href="#katalog">
                 Pogledaj ponudu <ArrowDown className="ml-2 h-4 w-4" />
               </a>
             </Button>
+            <a
+              href="#o-nama"
+              className="text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+            >
+              Naša priča →
+            </a>
           </div>
         </div>
 

@@ -27,11 +27,11 @@ export default function ProductCard({
   const primaryImage = product.images?.[0] || product.imageUrl
   return (
     <Card
-      className="card-enter group flex flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-md"
+      className="card-enter card-modern group flex flex-col overflow-hidden rounded-xl hover:-translate-y-1"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
       <div
-        className="relative flex h-40 cursor-pointer items-center justify-center overflow-hidden"
+        className="relative flex h-44 cursor-pointer items-center justify-center overflow-hidden"
         style={{ backgroundColor: product.color }}
         onClick={() => onView(product)}
         role="button"
@@ -54,7 +54,10 @@ export default function ProductCard({
             {product.name.charAt(0)}
           </span>
         )}
-        <Badge className="absolute left-3 top-3 bg-background/90 text-foreground hover:bg-background/90">
+        <span className="card-view-hint absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-black/55 to-transparent pb-2 pt-6 text-xs font-semibold uppercase tracking-wider text-white">
+          Pogledaj artikal
+        </span>
+        <Badge className="absolute left-3 top-3 bg-background/90 text-foreground shadow-sm hover:bg-background/90">
           {product.category}
         </Badge>
         {isAdmin && (
@@ -101,7 +104,7 @@ export default function ProductCard({
         <span className="font-display text-xl font-bold text-primary">
           {formatRsd(product.price)}
         </span>
-        <Button size="sm" onClick={() => onAdd(product)}>
+        <Button size="sm" className="btn-lift" onClick={() => onAdd(product)}>
           <ShoppingBasket className="mr-1 h-4 w-4" /> U korpu
         </Button>
       </CardFooter>

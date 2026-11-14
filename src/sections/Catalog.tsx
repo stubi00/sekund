@@ -47,6 +47,9 @@ export default function Catalog({
     <section id="katalog" className="mx-auto max-w-6xl px-4 py-16">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            Ponuda
+          </p>
           <h2 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
             Katalog
           </h2>
@@ -77,9 +80,9 @@ export default function Catalog({
             <button
               key={c}
               onClick={() => setCategory(c)}
-              className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+              className={`btn-lift rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 category === c
-                  ? 'border-accent bg-accent text-accent-foreground'
+                  ? 'border-accent bg-accent text-accent-foreground shadow-sm'
                   : 'border-border bg-card hover:border-accent hover:text-accent'
               }`}
             >
