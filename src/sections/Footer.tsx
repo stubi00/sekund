@@ -21,9 +21,9 @@ export default function Footer() {
         <div>
           <p className="mb-2 font-semibold">Radno vreme</p>
           <p className="text-sm opacity-80">
-            Pon – Pet: 10 – 19h
+            Pon – Pet: 10:00 – 19:00
             <br />
-            Subota: 10 – 15h
+            Subota: 10:00 – 15:00
             <br />
             Nedelja: zatvoreno
           </p>
