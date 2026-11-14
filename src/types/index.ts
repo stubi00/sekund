@@ -3,6 +3,7 @@ export interface Product {
   name: string
   price: number
   category: string
+  gender?: string
   size?: string
   description: string
   imageUrl?: string
@@ -26,6 +27,7 @@ export interface SiteSettings {
   heroCards: HeroCard[]
   stamp: string
   aboutText?: string
+  genders?: string[]
 }
 
 export interface Order {

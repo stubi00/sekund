@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { ShoppingBasket, Lock, LogOut } from 'lucide-react'
+import { ShoppingBasket, Lock, LogOut, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Props {
   cartCount: number
   isAdmin: boolean
+  genders: string[]
+  categories: string[]
+  onPick: (gender: string, category: string | null) => void
   onCartOpen: () => void
   onAdminClick: () => void
   onAdminLogout: () => void
@@ -13,6 +16,9 @@ interface Props {
 export default function Header({
   cartCount,
   isAdmin,
+  genders,
+  categories,
+  onPick,
   onCartOpen,
   onAdminClick,
   onAdminLogout,
@@ -46,6 +52,52 @@ export default function Header({
           <a href="#pocetna" className="transition-colors hover:text-primary">
             Početna
           </a>
+          <div className="group relative">
+            <button
+              type="button"
+              className="flex items-center gap-1 py-2 transition-colors hover:text-primary"
+              aria-haspopup="true"
+            >
+              Prodavnica <ChevronDown className="h-4 w-4" />
+            </button>
+            <div className="invisible absolute left-0 top-full pt-1 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+              <div className="w-44 rounded-xl border border-border bg-card p-1.5 shadow-lg">
+                {genders.map((g) => (
+                  <div key={g} className="group/sub relative">
+                    <button
+                      type="button"
+                      onClick={() => onPick(g, null)}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-secondary"
+                    >
+                      {g}
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                    <div className="invisible absolute left-full top-0 pl-1.5 opacity-0 transition-all duration-150 group-hover/sub:visible group-hover/sub:opacity-100 group-focus-within/sub:visible group-focus-within/sub:opacity-100">
+                      <div className="w-44 rounded-xl border border-border bg-card p-1.5 shadow-lg">
+                        <button
+                          type="button"
+                          onClick={() => onPick(g, null)}
+                          className="w-full rounded-lg px-3 py-2 text-left font-semibold transition-colors hover:bg-secondary"
+                        >
+                          Sve — {g.toLowerCase()}
+                        </button>
+                        {categories.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => onPick(g, c)}
+                            className="w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-secondary"
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           <a href="#katalog" className="transition-colors hover:text-primary">
             Katalog
           </a>

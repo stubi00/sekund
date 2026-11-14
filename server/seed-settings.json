@@ -4,5 +4,6 @@
     { "name": "Vuneni kaput", "category": "Kaputi", "price": 4500 }
   ],
   "stamp": "Polovno\nprovereno",
+  "genders": ["Muško", "Žensko"],
   "aboutText": "Sekund je mala prodavnica polovne garderobe iz Obrenovca.\n\nOvde upiši svoju priču — kako je sve počelo, šta te je pokrenulo i zašto baš polovna garderoba. Ovaj tekst menjaš kroz admin panel (Uredi početnu)."
 }

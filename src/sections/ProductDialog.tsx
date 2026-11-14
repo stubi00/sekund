@@ -118,6 +118,11 @@ export default function ProductDialog({ product, onClose, onAdd }: Props) {
               <Badge className="w-fit bg-secondary text-secondary-foreground hover:bg-secondary">
                 {product.category}
               </Badge>
+              {product.gender && (
+                <Badge className="w-fit bg-accent text-accent-foreground hover:bg-accent">
+                  {product.gender}
+                </Badge>
+              )}
               {product.size && (
                 <Badge className="w-fit bg-primary text-primary-foreground hover:bg-primary">
                   Veličina {product.size}

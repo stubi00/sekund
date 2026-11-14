@@ -112,6 +112,7 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   editing: Product | null
+  genders?: string[]
   onSave: (data: Omit<Product, 'id'>, id?: string) => void
 }
 
@@ -119,11 +120,13 @@ export default function ProductForm({
   open,
   onOpenChange,
   editing,
+  genders = [],
   onSave,
 }: Props) {
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [category, setCategory] = useState('')
+  const [gender, setGender] = useState('')
   const [size, setSize] = useState('')
   const [description, setDescription] = useState('')
   const [images, setImages] = useState<string[]>([])
@@ -135,6 +138,7 @@ export default function ProductForm({
       setName(editing?.name ?? '')
       setPrice(editing ? String(editing.price) : '')
       setCategory(editing?.category ?? '')
+      setGender(editing?.gender ?? '')
       setSize(editing?.size ?? '')
       setDescription(editing?.description ?? '')
       setImages(
@@ -161,6 +165,7 @@ export default function ProductForm({
         name: name.trim(),
         price: Math.round(priceNum),
         category: category.trim(),
+        gender: gender.trim(),
         size: size.trim(),
         description: description.trim(),
         images,
@@ -209,6 +214,24 @@ export default function ProductForm({
               />
             </div>
           </div>
+          {genders.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="p-gender">Odeljenje</Label>
+              <select
+                id="p-gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">— bez odeljenja —</option>
+                {genders.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="p-size">Veličina</Label>
             <Input

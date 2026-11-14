@@ -31,6 +31,8 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
   const [secondImage, setSecondImage] = useState('')
   const [stamp, setStamp] = useState('')
   const [aboutText, setAboutText] = useState('')
+  const [genders, setGenders] = useState<string[]>([])
+  const [newGender, setNewGender] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -47,6 +49,8 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
       setSecondImage(b?.imageUrl ?? '')
       setStamp(settings.stamp)
       setAboutText(settings.aboutText ?? '')
+      setGenders(settings.genders?.length ? settings.genders : ['Muško', 'Žensko'])
+      setNewGender('')
       setError('')
     }
   }, [open, settings])
@@ -79,6 +83,7 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
         ],
         stamp: stamp.trim(),
         aboutText: aboutText.trim(),
+        genders,
       })
       onOpenChange(false)
     } catch {
@@ -192,6 +197,70 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
               onChange={(e) => setAboutText(e.target.value)}
               placeholder="Upiši priču svoje radnje…"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Odeljenja (npr. Muško, Žensko, Dečije)</Label>
+            <p className="text-xs text-muted-foreground">
+              Klikni u polje da preimenuješ, × da obrišeš.
+            </p>
+            <div className="space-y-2">
+              {genders.map((g, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={g}
+                    onChange={(e) =>
+                      setGenders(
+                        genders.map((x, j) => (j === i ? e.target.value : x)),
+                      )
+                    }
+                    aria-label={`Odeljenje ${i + 1}`}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => setGenders(genders.filter((_, j) => j !== i))}
+                    aria-label={`Obriši ${g}`}
+                    disabled={genders.length <= 1}
+                  >
+                    ×
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                value={newGender}
+                onChange={(e) => setNewGender(e.target.value)}
+                placeholder="Novo odeljenje…"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const v = newGender.trim()
+                    if (v && !genders.includes(v) && genders.length < 8) {
+                      setGenders([...genders, v])
+                      setNewGender('')
+                    }
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => {
+                  const v = newGender.trim()
+                  if (v && !genders.includes(v) && genders.length < 8) {
+                    setGenders([...genders, v])
+                    setNewGender('')
+                  }
+                }}
+              >
+                + Dodaj
+              </Button>
+            </div>
           </div>
 
           {error && (

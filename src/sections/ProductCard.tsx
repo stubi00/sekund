@@ -61,6 +61,11 @@ export default function ProductCard({
           <Badge className="bg-background/90 text-foreground shadow-sm hover:bg-background/90">
             {product.category}
           </Badge>
+          {product.gender && (
+            <Badge className="bg-accent/90 text-accent-foreground shadow-sm hover:bg-accent/90">
+              {product.gender}
+            </Badge>
+          )}
           {product.size && (
             <Badge className="bg-primary/90 text-primary-foreground shadow-sm hover:bg-primary/90">
               {product.size}

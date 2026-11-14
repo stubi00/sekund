@@ -8,6 +8,11 @@ import type { Product } from '@/types'
 interface Props {
   products: Product[]
   isAdmin: boolean
+  genders: string[]
+  category: string
+  gender: string
+  onCategoryChange: (c: string) => void
+  onGenderChange: (g: string) => void
   onAdd: (p: Product) => void
   onEdit: (p: Product) => void
   onDelete: (p: Product) => void
@@ -18,6 +23,11 @@ interface Props {
 export default function Catalog({
   products,
   isAdmin,
+  genders,
+  category,
+  gender,
+  onCategoryChange,
+  onGenderChange,
   onAdd,
   onEdit,
   onDelete,
@@ -25,7 +35,6 @@ export default function Catalog({
   onView,
 }: Props) {
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<string>('Sve')
   const [size, setSize] = useState<string>('Sve')
   const [sort, setSort] = useState<'default' | 'asc' | 'desc'>('default')
 
@@ -48,6 +57,7 @@ export default function Catalog({
     const q = query.trim().toLowerCase()
     const list = products.filter(
       (p) =>
+        (gender === 'Sve' || p.gender === gender) &&
         (category === 'Sve' || p.category === category) &&
         (size === 'Sve' || p.size === size) &&
         (q === '' ||
@@ -57,7 +67,7 @@ export default function Catalog({
     if (sort === 'asc') return [...list].sort((a, b) => a.price - b.price)
     if (sort === 'desc') return [...list].sort((a, b) => b.price - a.price)
     return list
-  }, [products, query, category, size, sort])
+  }, [products, query, category, gender, size, sort])
 
   return (
     <section id="katalog" className="mx-auto max-w-6xl px-4 py-16">
@@ -91,11 +101,28 @@ export default function Catalog({
             aria-label="Pretraga artikala"
           />
         </div>
+        {genders.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {['Sve', ...genders].map((g) => (
+              <button
+                key={g}
+                onClick={() => onGenderChange(g)}
+                className={`btn-lift rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                  gender === g
+                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                    : 'border-border bg-card hover:border-primary hover:text-primary'
+                }`}
+              >
+                {g === 'Sve' ? 'Sva odeljenja' : g}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => (
             <button
               key={c}
-              onClick={() => setCategory(c)}
+              onClick={() => onCategoryChange(c)}
               className={`btn-lift rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 category === c
                   ? 'border-accent bg-accent text-accent-foreground shadow-sm'
@@ -142,7 +169,8 @@ export default function Catalog({
               className="font-medium text-primary underline underline-offset-4"
               onClick={() => {
                 setQuery('')
-                setCategory('Sve')
+                onCategoryChange('Sve')
+                onGenderChange('Sve')
                 setSize('Sve')
                 setSort('default')
               }}

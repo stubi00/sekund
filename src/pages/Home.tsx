@@ -46,6 +46,21 @@ export default function Home() {
   const [editing, setEditing] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<Product | null>(null)
   const [viewing, setViewing] = useState<Product | null>(null)
+  const [filterGender, setFilterGender] = useState('Sve')
+  const [filterCategory, setFilterCategory] = useState('Sve')
+
+  const genders = settings?.genders?.length
+    ? settings.genders
+    : ['Muško', 'Žensko']
+  const categories = Array.from(new Set(products.map((p) => p.category)))
+
+  const handlePick = (gender: string, category: string | null) => {
+    setFilterGender(gender)
+    setFilterCategory(category ?? 'Sve')
+    document
+      .getElementById('katalog')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   useEffect(() => {
     api
@@ -91,6 +106,9 @@ export default function Home() {
       <Header
         cartCount={cart.count}
         isAdmin={isAdmin}
+        genders={genders}
+        categories={categories}
+        onPick={handlePick}
         onCartOpen={() => setCartOpen(true)}
         onAdminClick={() => setLoginOpen(true)}
         onAdminLogout={() => {
@@ -148,6 +166,11 @@ export default function Home() {
           <Catalog
             products={products}
             isAdmin={isAdmin}
+            genders={genders}
+            category={filterCategory}
+            gender={filterGender}
+            onCategoryChange={setFilterCategory}
+            onGenderChange={setFilterGender}
             onAdd={(p) => {
               cart.add(p)
               setCartOpen(true)
@@ -205,6 +228,7 @@ export default function Home() {
         open={formOpen}
         onOpenChange={setFormOpen}
         editing={editing}
+        genders={genders}
         onSave={handleSaveProduct}
       />
 
