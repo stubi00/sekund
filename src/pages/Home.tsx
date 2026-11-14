@@ -23,15 +23,17 @@ import HeroForm from '@/sections/HeroForm'
 import AboutSection from '@/sections/AboutSection'
 import ProductDialog from '@/sections/ProductDialog'
 import Footer from '@/sections/Footer'
+import { useNavigate } from 'react-router'
 import { useProducts } from '@/hooks/useProducts'
-import { useCart } from '@/hooks/useCart'
+import { useSharedCart } from '@/lib/cart-context'
 import { api, clearToken, getToken } from '@/lib/api'
 import type { Order, Product, SiteSettings } from '@/types'
 
 export default function Home() {
+  const navigate = useNavigate()
   const { products, loading, error, addProduct, updateProduct, removeProduct } =
     useProducts()
-  const cart = useCart()
+  const cart = useSharedCart()
 
   const [orders, setOrders] = useState<Order[]>([])
   const [settings, setSettings] = useState<SiteSettings | null>(null)
@@ -64,18 +66,6 @@ export default function Home() {
   useEffect(() => {
     if (isAdmin) loadOrders()
   }, [isAdmin, ordersOpen, loadOrders])
-
-  const handleCheckout = async (
-    order: Omit<Order, 'id' | 'createdAt'>,
-  ): Promise<boolean> => {
-    try {
-      await api.createOrder(order)
-      cart.clear()
-      return true
-    } catch {
-      return false
-    }
-  }
 
   const handleSaveProduct = async (data: Omit<Product, 'id'>, id?: string) => {
     try {
@@ -196,7 +186,10 @@ export default function Home() {
         total={cart.total}
         setQty={cart.setQty}
         remove={cart.remove}
-        onCheckout={handleCheckout}
+        onGoCheckout={() => {
+          setCartOpen(false)
+          navigate('/porudzbina')
+        }}
       />
 
       <AdminLogin
