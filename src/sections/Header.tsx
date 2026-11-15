@@ -114,9 +114,6 @@ export default function Header({
               </div>
             </div>
           </div>
-          <a href="#katalog" className="transition-colors hover:text-primary">
-            Katalog
-          </a>
           <a href="#kontakt" className="transition-colors hover:text-primary">
             Kontakt
           </a>
@@ -214,13 +211,6 @@ export default function Header({
               </div>
             ))}
 
-            <a
-              href="#katalog"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
-            >
-              Katalog
-            </a>
             <a
               href="#kontakt"
               onClick={() => setMobileOpen(false)}

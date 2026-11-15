@@ -1,6 +1,6 @@
 import '../App.css'
 import { useCallback, useEffect, useState } from 'react'
-import { ClipboardList, LayoutPanelTop } from 'lucide-react'
+import { ClipboardList, LayoutPanelTop, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import Header from '@/sections/Header'
 import Room3D from '@/sections/Room3D'
-import Catalog from '@/sections/Catalog'
 import CartSheet from '@/sections/CartSheet'
 import AdminLogin from '@/sections/AdminLogin'
 import ProductForm from '@/sections/ProductForm'
@@ -57,7 +56,7 @@ export default function Home() {
     setFilterGender(gender)
     setFilterCategory(category ?? 'Sve')
     document
-      .getElementById('katalog')
+      .getElementById('pocetna')
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -118,30 +117,56 @@ export default function Home() {
       />
 
       <main className="flex-1">
-        <Room3D
-          products={products}
-          loading={loading}
-          genders={genders}
-          category={filterCategory}
-          gender={filterGender}
-          stamp={settings?.stamp}
-          onCategoryChange={setFilterCategory}
-          onGenderChange={setFilterGender}
-          onView={setViewing}
-          onAdd={(p) => {
-            cart.add(p)
-            setCartOpen(true)
-          }}
-        />
+        {error ? (
+          <div className="mx-auto max-w-6xl px-4 py-16 text-center">
+            <p className="text-lg font-medium text-destructive">
+              Server nije dostupan.
+            </p>
+            <p className="mt-2 text-muted-foreground">
+              Pokreni backend (npm run dev) pa osveži stranicu.
+            </p>
+          </div>
+        ) : (
+          <Room3D
+            products={products}
+            loading={loading}
+            genders={genders}
+            category={filterCategory}
+            gender={filterGender}
+            stamp={settings?.stamp}
+            isAdmin={isAdmin}
+            onCategoryChange={setFilterCategory}
+            onGenderChange={setFilterGender}
+            onView={setViewing}
+            onAdd={(p) => {
+              cart.add(p)
+              setCartOpen(true)
+            }}
+            onEdit={(p) => {
+              setEditing(p)
+              setFormOpen(true)
+            }}
+            onDelete={setDeleting}
+          />
+        )}
 
         {isAdmin && (
           <div className="border-b border-border bg-secondary/60">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
               <p className="text-sm font-medium">
-                Ulogovan si kao administrator — klikni olovku na kartici da
-                izmeniš cenu ili detalje.
+                Ulogovan si kao administrator — u sobi izaberi artikal pa
+                „Izmeni" ili „Obriši".
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditing(null)
+                    setFormOpen(true)
+                  }}
+                >
+                  <Plus className="mr-1 h-4 w-4" /> Dodaj artikal
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -161,46 +186,6 @@ export default function Home() {
             </div>
           </div>
         )}
-
-        {error ? (
-          <div className="mx-auto max-w-6xl px-4 py-16 text-center">
-            <p className="text-lg font-medium text-destructive">
-              Server nije dostupan.
-            </p>
-            <p className="mt-2 text-muted-foreground">
-              Pokreni backend (npm run dev) pa osveži stranicu.
-            </p>
-          </div>
-        ) : loading ? (
-          <div className="mx-auto max-w-6xl px-4 py-16 text-center text-muted-foreground">
-            Učitavam katalog…
-          </div>
-        ) : (
-          <Catalog
-            products={products}
-            isAdmin={isAdmin}
-            genders={genders}
-            category={filterCategory}
-            gender={filterGender}
-            onCategoryChange={setFilterCategory}
-            onGenderChange={setFilterGender}
-            onAdd={(p) => {
-              cart.add(p)
-              setCartOpen(true)
-            }}
-            onEdit={(p) => {
-              setEditing(p)
-              setFormOpen(true)
-            }}
-            onDelete={setDeleting}
-            onView={setViewing}
-            onNewProduct={() => {
-              setEditing(null)
-              setFormOpen(true)
-            }}
-          />
-        )}
-
       </main>
 
       <Footer />

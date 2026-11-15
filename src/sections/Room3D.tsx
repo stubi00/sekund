@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { ChevronLeft, ChevronRight, ShoppingBasket } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  ShoppingBasket,
+  Trash2,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Product } from '@/types'
@@ -13,17 +19,20 @@ interface Props {
   category: string
   gender: string
   stamp?: string
+  isAdmin?: boolean
   onCategoryChange: (c: string) => void
   onGenderChange: (g: string) => void
   onView: (p: Product) => void
   onAdd: (p: Product) => void
+  onEdit?: (p: Product) => void
+  onDelete?: (p: Product) => void
 }
 
-const SPACING = 1.7
+const ROOM_R = 4.6
 const ROD_Y = 2.1
+const ROD_OFF = 0.45
 const GARMENT_W = 1.0
 const GARMENT_H = 1.3
-const WALL_Z = -0.35
 
 /* Tekstura sa slovom kad artikal nema sliku */
 function letterTexture(letter: string, color: string) {
@@ -59,10 +68,7 @@ function signTexture() {
   ctx.fillStyle = '#2b2b25'
   ctx.textAlign = 'center'
   ctx.font = '600 64px Georgia, serif'
-  ctx.save()
-  ctx.translate(c.width / 2, 150)
-  ctx.fillText('V I R T U A L N A   P R O D A V N I C A', 0, 0)
-  ctx.restore()
+  ctx.fillText('V I R T U A L N A   P R O D A V N I C A', c.width / 2, 150)
   ctx.font = '700 330px Georgia, serif'
   ctx.fillText('SEKUND', c.width / 2, 470)
   const t = new THREE.CanvasTexture(c)
@@ -122,7 +128,7 @@ function floorTexture() {
   t.colorSpace = THREE.SRGBColorSpace
   t.wrapS = THREE.RepeatWrapping
   t.wrapT = THREE.RepeatWrapping
-  t.repeat.set(60, 2.2)
+  t.repeat.set(8, 8)
   t.anisotropy = 8
   return t
 }
@@ -152,6 +158,12 @@ function createHanger(metal: THREE.Material) {
   return g
 }
 
+const wrapAngle = (a: number) => {
+  while (a > Math.PI) a -= Math.PI * 2
+  while (a < -Math.PI) a += Math.PI * 2
+  return a
+}
+
 export default function Room3D({
   products,
   loading,
@@ -159,10 +171,13 @@ export default function Room3D({
   category,
   gender,
   stamp,
+  isAdmin,
   onCategoryChange,
   onGenderChange,
   onView,
   onAdd,
+  onEdit,
+  onDelete,
 }: Props) {
   const mountRef = useRef<HTMLDivElement>(null)
   const [focused, setFocused] = useState(0)
@@ -183,10 +198,15 @@ export default function Room3D({
 
   const filteredKey = filtered.map((p) => p.id).join('|')
   const stateRef = useRef<{
-    targetX: number
-    items: { group: THREE.Group; product: Product; hit: THREE.Mesh }[]
-    setCam: (x: number) => void
-  }>({ targetX: 0, items: [], setCam: () => {} })
+    targetYaw: number
+    targetPitch: number
+    items: {
+      group: THREE.Group
+      product: Product
+      hit: THREE.Mesh
+      angle: number
+    }[]
+  }>({ targetYaw: 0, targetPitch: 0, items: [] })
 
   /* Glavni efekat — pravi sobu i artikle */
   useEffect(() => {
@@ -199,36 +219,64 @@ export default function Room3D({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
     renderer.outputColorSpace = THREE.SRGBColorSpace
     mount.appendChild(renderer.domElement)
-    renderer.domElement.style.display = 'block'
-    renderer.domElement.style.cursor = 'grab'
-    renderer.domElement.style.touchAction = 'pan-y'
+    const el = renderer.domElement
+    el.style.display = 'block'
+    el.style.cursor = 'grab'
+    el.style.touchAction = 'pan-y'
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color('#ece5db')
+    scene.background = new THREE.Color('#e7dfd2')
 
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 60)
-    camera.position.set(0, 1.75, 5.1)
+    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 40)
+    camera.rotation.order = 'YXZ'
+    camera.position.set(0, 1.65, 0)
 
     /* Svetlost */
-    scene.add(new THREE.HemisphereLight(0xfff6ea, 0x8a7a68, 1.0))
-    const key = new THREE.DirectionalLight(0xfff1de, 2.2)
-    key.castShadow = true
-    key.shadow.mapSize.set(2048, 2048)
-    key.shadow.camera.left = -4
-    key.shadow.camera.right = 4
-    key.shadow.camera.top = 4
-    key.shadow.camera.bottom = -3
-    key.shadow.camera.far = 20
-    key.shadow.bias = -0.0004
-    key.shadow.radius = 5
-    scene.add(key, key.target)
-    const fill = new THREE.DirectionalLight(0xdfe8ff, 0.5)
-    fill.position.set(-4, 3, 5)
-    scene.add(fill)
+    scene.add(new THREE.HemisphereLight(0xfff6ea, 0x8a7a68, 0.75))
+    const sun = new THREE.DirectionalLight(0xfff1de, 1.5)
+    sun.position.set(3, 7, 4)
+    sun.castShadow = true
+    sun.shadow.mapSize.set(2048, 2048)
+    sun.shadow.camera.left = -7
+    sun.shadow.camera.right = 7
+    sun.shadow.camera.top = 7
+    sun.shadow.camera.bottom = -7
+    sun.shadow.camera.far = 25
+    sun.shadow.bias = -0.0004
+    sun.shadow.radius = 5
+    scene.add(sun)
+
+    /* Visilice */
+    const lampXs = [-2.2, 0, 2.2]
+    lampXs.forEach((lx) => {
+      const lamp = new THREE.Group()
+      const cord = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.008, 0.008, 1.0, 6),
+        new THREE.MeshStandardMaterial({ color: '#2b2b25' }),
+      )
+      cord.position.y = 3.7
+      lamp.add(cord)
+      const shade = new THREE.Mesh(
+        new THREE.ConeGeometry(0.22, 0.22, 24, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: '#2b2b25',
+          roughness: 0.5,
+          metalness: 0.6,
+          side: THREE.DoubleSide,
+        }),
+      )
+      shade.position.y = 3.2
+      lamp.add(shade)
+      const bulb = new THREE.PointLight(0xffe3c0, 10, 9, 2)
+      bulb.position.y = 3.05
+      lamp.add(bulb)
+      lamp.position.x = lx
+      scene.add(lamp)
+    })
 
     /* Materijali sobe */
     const wallMat = new THREE.MeshStandardMaterial({
-      color: '#ece5db',
+      color: '#e7dfd2',
       roughness: 0.95,
     })
     const metalMat = new THREE.MeshStandardMaterial({
@@ -237,48 +285,100 @@ export default function Room3D({
       metalness: 0.8,
     })
 
-    const room = new THREE.Group()
-    scene.add(room)
-
     /* Pod */
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(400, 14),
-      new THREE.MeshStandardMaterial({
-        map: floorTexture(),
-        roughness: 0.75,
-      }),
+      new THREE.PlaneGeometry(ROOM_R * 2, ROOM_R * 2),
+      new THREE.MeshStandardMaterial({ map: floorTexture(), roughness: 0.75 }),
     )
     floor.rotation.x = -Math.PI / 2
-    floor.position.z = 4
     floor.receiveShadow = true
-    room.add(floor)
+    scene.add(floor)
 
-    /* Zadnji zid */
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(400, 6), wallMat)
-    wall.position.set(0, 3, WALL_Z)
-    wall.receiveShadow = true
-    room.add(wall)
-
-    /* Sokla */
-    const base = new THREE.Mesh(
-      new THREE.BoxGeometry(400, 0.12, 0.03),
-      new THREE.MeshStandardMaterial({ color: '#d8cfc2', roughness: 0.9 }),
+    /* Tepih */
+    const rug = new THREE.Mesh(
+      new THREE.CircleGeometry(1.7, 40),
+      new THREE.MeshStandardMaterial({ color: '#a3462f', roughness: 1 }),
     )
-    base.position.set(0, 0.06, WALL_Z + 0.015)
-    room.add(base)
+    rug.rotation.x = -Math.PI / 2
+    rug.position.y = 0.006
+    rug.receiveShadow = true
+    scene.add(rug)
 
-    /* Natpis */
+    /* Plafon */
+    const ceil = new THREE.Mesh(
+      new THREE.PlaneGeometry(ROOM_R * 2, ROOM_R * 2),
+      new THREE.MeshStandardMaterial({ color: '#efe9dd', roughness: 1 }),
+    )
+    ceil.rotation.x = Math.PI / 2
+    ceil.position.y = 4.2
+    scene.add(ceil)
+
+    /* Zidovi: sever, istok, jug, zapad */
+    const wallDefs = [
+      { nx: 0, nz: -1, rotY: 0 }, // sever (z=-R)
+      { nx: 1, nz: 0, rotY: -Math.PI / 2 }, // istok (x=+R)
+      { nx: 0, nz: 1, rotY: Math.PI }, // jug (z=+R)
+      { nx: -1, nz: 0, rotY: Math.PI / 2 }, // zapad (x=-R)
+    ]
+    wallDefs.forEach(({ nx, nz, rotY }) => {
+      const wall = new THREE.Mesh(
+        new THREE.PlaneGeometry(ROOM_R * 2, 4.2),
+        wallMat,
+      )
+      wall.rotation.y = rotY
+      wall.position.set(nx * ROOM_R, 2.1, nz * ROOM_R)
+      wall.receiveShadow = true
+      scene.add(wall)
+      /* sokla */
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(ROOM_R * 2, 0.12, 0.03),
+        new THREE.MeshStandardMaterial({ color: '#d3c9b8', roughness: 0.9 }),
+      )
+      base.rotation.y = rotY
+      base.position.set(
+        nx * (ROOM_R - 0.015),
+        0.06,
+        nz * (ROOM_R - 0.015),
+      )
+      scene.add(base)
+      /* šipka za odeću */
+      const rodLen = ROOM_R * 2 - 1.2
+      const rod = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.016, 0.016, rodLen, 12),
+        metalMat,
+      )
+      rod.rotation.z = Math.PI / 2
+      rod.rotation.y = rotY
+      const rodX = nx * (ROOM_R - ROD_OFF)
+      const rodZ = nz * (ROOM_R - ROD_OFF)
+      rod.position.set(rodX, ROD_Y, rodZ)
+      rod.castShadow = true
+      scene.add(rod)
+      /* nosači šipke */
+      ;[-rodLen / 2 + 0.15, 0, rodLen / 2 - 0.15].forEach((s) => {
+        const mount = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.012, 0.012, ROD_OFF, 8),
+          metalMat,
+        )
+        /* od zida do šipke */
+        const mx = nx === 0 ? s : ROOM_R - ROD_OFF / 2
+        const mz = nz === 0 ? s : ROOM_R - ROD_OFF / 2
+        mount.position.set(nx !== 0 ? nx * mx : mx, ROD_Y, nz !== 0 ? nz * mz : mz)
+        mount.rotation.x = nz !== 0 ? Math.PI / 2 : 0
+        mount.rotation.z = nx !== 0 ? Math.PI / 2 : 0
+        scene.add(mount)
+      })
+    })
+
+    /* Natpis na severnom zidu */
     const sign = new THREE.Mesh(
-      new THREE.PlaneGeometry(5.2, 1.625),
-      new THREE.MeshBasicMaterial({
-        map: signTexture(),
-        transparent: true,
-      }),
+      new THREE.PlaneGeometry(4.6, 1.44),
+      new THREE.MeshBasicMaterial({ map: signTexture(), transparent: true }),
     )
-    sign.position.set(0, 3.3, WALL_Z + 0.02)
-    room.add(sign)
+    sign.position.set(0, 3.35, -ROOM_R + 0.02)
+    scene.add(sign)
 
-    /* Pečat na zidu */
+    /* Pečat na istočnom zidu */
     let stampMesh: THREE.Mesh | null = null
     if (stamp) {
       stampMesh = new THREE.Mesh(
@@ -288,21 +388,12 @@ export default function Room3D({
           transparent: true,
         }),
       )
-      stampMesh.position.set(3.6, 3.25, WALL_Z + 0.02)
-      room.add(stampMesh)
+      stampMesh.rotation.y = -Math.PI / 2
+      stampMesh.position.set(ROOM_R - 0.02, 3.15, 1.4)
+      scene.add(stampMesh)
     }
 
-    /* Šipka */
-    const rod = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.016, 0.016, 400, 12),
-      metalMat,
-    )
-    rod.rotation.z = Math.PI / 2
-    rod.position.set(0, ROD_Y, 0)
-    rod.castShadow = true
-    room.add(rod)
-
-    /* Artikli */
+    /* Artikli — raspoređeni po zidovima */
     const texCache = new Map<string, THREE.Texture>()
     const loader = new THREE.TextureLoader()
     loader.crossOrigin = 'anonymous'
@@ -311,91 +402,111 @@ export default function Room3D({
 
     const st = stateRef.current
     st.items = []
-    const n = filtered.length
-    const minX = n ? 0 : 0
-    const maxX = n ? (n - 1) * SPACING : 0
 
-    filtered.forEach((p, i) => {
-      const group = new THREE.Group()
-      group.position.set(i * SPACING, ROD_Y, 0)
+    const perWall: Product[][] = [[], [], [], []]
+    filtered.forEach((p, i) => perWall[i % 4].push(p))
 
-      group.add(createHanger(metalMat))
+    const usable = ROOM_R * 2 - 1.8
+    perWall.forEach((list, w) => {
+      const { nx, nz, rotY } = wallDefs[w]
+      const count = list.length
+      const spacing = count > 1 ? Math.min(1.6, usable / (count - 1)) : 0
+      list.forEach((p, j) => {
+        const s = count > 1 ? -((count - 1) * spacing) / 2 + j * spacing : 0
+        const px = nx !== 0 ? nx * (ROOM_R - ROD_OFF) : s
+        const pz = nz !== 0 ? nz * (ROOM_R - ROD_OFF) : s
 
-      const img = p.images?.[0] || p.imageUrl
-      let tex: THREE.Texture
-      if (img) {
-        const cached = texCache.get(img)
-        if (cached) {
-          tex = cached
+        const group = new THREE.Group()
+        group.position.set(px, ROD_Y, pz)
+        group.rotation.y = rotY
+
+        group.add(createHanger(metalMat))
+
+        const img = p.images?.[0] || p.imageUrl
+        let tex: THREE.Texture
+        if (img) {
+          const cached = texCache.get(img)
+          if (cached) {
+            tex = cached
+          } else {
+            tex = loader.load(img)
+            tex.colorSpace = THREE.SRGBColorSpace
+            tex.anisotropy = 4
+            texCache.set(img, tex)
+          }
         } else {
-          tex = loader.load(img)
-          tex.colorSpace = THREE.SRGBColorSpace
-          tex.anisotropy = 4
-          texCache.set(img, tex)
+          tex = letterTexture(p.name.charAt(0), p.color)
         }
-      } else {
-        tex = letterTexture(p.name.charAt(0), p.color)
-      }
-      const mat = new THREE.MeshStandardMaterial({
-        map: tex,
-        roughness: 0.9,
-        side: THREE.DoubleSide,
-      })
-      const garment = new THREE.Mesh(
-        new THREE.PlaneGeometry(GARMENT_W, GARMENT_H),
-        mat,
-      )
-      garment.position.y = -0.19 - GARMENT_H / 2
-      garment.position.z = 0.035
-      garment.castShadow = true
-      garment.userData.productIndex = i
-      group.add(garment)
+        const mat = new THREE.MeshStandardMaterial({
+          map: tex,
+          roughness: 0.9,
+          side: THREE.DoubleSide,
+        })
+        const garment = new THREE.Mesh(
+          new THREE.PlaneGeometry(GARMENT_W, GARMENT_H),
+          mat,
+        )
+        garment.position.y = -0.19 - GARMENT_H / 2
+        garment.position.z = 0.035
+        garment.castShadow = true
+        garment.userData.productIndex = st.items.length
+        group.add(garment)
 
-      itemRoot.add(group)
-      st.items.push({ group, product: p, hit: garment })
+        itemRoot.add(group)
+        st.items.push({
+          group,
+          product: p,
+          hit: garment,
+          angle: Math.atan2(-px, -pz),
+        })
+      })
     })
 
-    /* Kamera — pozicija i kretanje */
-    let camX = 0
-    st.targetX = 0
-    st.setCam = (x: number) => {
-      st.targetX = Math.max(minX, Math.min(maxX, x))
-    }
+    /* Kamera — okretanje u krug */
+    let yaw = 0
+    let pitch = 0
+    st.targetYaw = 0
+    st.targetPitch = 0
     setFocused(0)
 
-    /* Prevlačenje */
     let dragging = false
     let downX = 0
     let downY = 0
-    let startTarget = 0
+    let startYaw = 0
+    let startPitch = 0
     let moved = 0
-    const el = renderer.domElement
-    const pxToWorld = () => {
-      const h = mount.clientHeight
-      const worldH =
-        2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 5.1
-      return worldH / h
+    const pxToAngle = () => {
+      const w = mount.clientWidth
+      const hf = 2 * Math.atan(
+        Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect,
+      )
+      return hf / w
     }
     const onDown = (e: PointerEvent) => {
       dragging = true
       moved = 0
       downX = e.clientX
       downY = e.clientY
-      startTarget = st.targetX
+      startYaw = st.targetYaw
+      startPitch = st.targetPitch
       el.style.cursor = 'grabbing'
     }
     const onMove = (e: PointerEvent) => {
       if (!dragging) return
       const dx = e.clientX - downX
-      moved = Math.max(moved, Math.abs(dx) + Math.abs(e.clientY - downY) * 0.2)
-      st.setCam(startTarget - dx * pxToWorld())
+      const dy = e.clientY - downY
+      moved = Math.max(moved, Math.abs(dx) + Math.abs(dy) * 0.3)
+      st.targetYaw = startYaw - dx * pxToAngle()
+      st.targetPitch = Math.max(
+        -0.28,
+        Math.min(0.22, startPitch - dy * pxToAngle() * 0.6),
+      )
     }
     const onUp = (e: PointerEvent) => {
       if (!dragging) return
       dragging = false
       el.style.cursor = 'grab'
       if (moved < 6) {
-        /* klik — pogodi artikal */
         const r = el.getBoundingClientRect()
         const ndc = new THREE.Vector2(
           ((e.clientX - r.left) / r.width) * 2 - 1,
@@ -414,19 +525,9 @@ export default function Room3D({
         }
       }
     }
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
-      const canLeft = st.targetX > minX + 0.01
-      const canRight = st.targetX < maxX - 0.01
-      if ((e.deltaY > 0 && canRight) || (e.deltaY < 0 && canLeft)) {
-        e.preventDefault()
-        st.setCam(st.targetX + e.deltaY * 0.004)
-      }
-    }
     el.addEventListener('pointerdown', onDown)
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
-    el.addEventListener('wheel', onWheel, { passive: false })
 
     /* Veličina */
     const resize = () => {
@@ -435,7 +536,6 @@ export default function Room3D({
       renderer.setSize(w, h)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
-      /* na uskim ekranima natpis staje u kadar */
       const k = Math.max(0.5, Math.min(1, camera.aspect / 1.4))
       sign.scale.setScalar(k)
     }
@@ -449,30 +549,25 @@ export default function Room3D({
     let lastFocused = -1
     const tick = () => {
       const t = clock.getElapsedTime()
-      camX += (st.targetX - camX) * 0.08
-      camera.position.x = camX
-      camera.position.y = 1.9
-      camera.lookAt(camX * 0.96, 2.0, -0.4)
-      key.position.set(camX + 1.4, 5.0, 3.2)
-      key.target.position.set(camX, 1.3, WALL_Z)
-      key.target.updateMatrixWorld()
+      yaw += wrapAngle(st.targetYaw - yaw) * 0.09
+      pitch += (st.targetPitch - pitch) * 0.09
+      camera.rotation.y = yaw
+      camera.rotation.x = pitch
 
       let best = 0
       let bestD = Infinity
       st.items.forEach((it, i) => {
-        const d = Math.abs(it.group.position.x - camX)
+        const d = Math.abs(wrapAngle(it.angle - yaw))
         if (d < bestD) {
           bestD = d
           best = i
         }
-        /* ljuljanje */
         it.group.rotation.z = Math.sin(t * 1.1 + i * 0.8) * 0.018
-        const s = d < 0.4 ? 1.08 : 1
+        const target = d < 0.18 ? 1.07 : 1
         const cur = it.group.scale.x
-        const ns = cur + (s - cur) * 0.12
-        it.group.scale.setScalar(ns)
+        it.group.scale.setScalar(cur + (target - cur) * 0.12)
       })
-      if (best !== lastFocused) {
+      if (best !== lastFocused && st.items.length) {
         lastFocused = best
         setFocused(best)
       }
@@ -488,7 +583,6 @@ export default function Room3D({
       el.removeEventListener('pointerdown', onDown)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-      el.removeEventListener('wheel', onWheel)
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           o.geometry.dispose()
@@ -503,18 +597,33 @@ export default function Room3D({
       })
       texCache.clear()
       renderer.dispose()
-      mount.removeChild(renderer.domElement)
+      mount.removeChild(el)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredKey, stamp])
 
   const focusedProduct =
-    filtered.length > 0 ? filtered[Math.min(focused, filtered.length - 1)] : null
+    stateRef.current.items.length > 0
+      ? stateRef.current.items[
+          Math.min(focused, stateRef.current.items.length - 1)
+        ].product
+      : null
 
   const go = (dir: 1 | -1) => {
     const st = stateRef.current
-    const i = Math.round(st.targetX / SPACING)
-    st.setCam((i + dir) * SPACING)
+    if (!st.items.length) return
+    const angles = [...st.items].map((it) => it.angle).sort((a, b) => a - b)
+    const cur = wrapAngle(st.targetYaw)
+    let next: number
+    if (dir > 0) {
+      next =
+        angles.find((a) => a > cur + 0.02) ?? angles[0] + Math.PI * 2
+    } else {
+      next =
+        [...angles].reverse().find((a) => a < cur - 0.02) ??
+        angles[angles.length - 1] - Math.PI * 2
+    }
+    st.targetYaw = cur + wrapAngle(next - cur)
   }
 
   const skeleton = loading && products.length === 0
@@ -522,34 +631,32 @@ export default function Room3D({
   return (
     <section
       id="pocetna"
-      className="relative overflow-hidden border-b border-border bg-[#ece5db]"
+      className="relative overflow-hidden border-b border-border bg-[#e7dfd2]"
     >
       <div
         ref={mountRef}
-        className="relative h-[62vh] min-h-[420px] w-full select-none md:h-[68vh]"
+        className="h-[calc(100dvh-4rem)] min-h-[540px] w-full select-none"
       />
-      {skeleton && (
-        <div className="absolute inset-0 flex h-[62vh] min-h-[420px] items-center justify-center text-muted-foreground md:h-[68vh]">
-          Učitavam prodavnicu…
-        </div>
-      )}
-      {!skeleton && filtered.length === 0 && (
-        <div className="absolute inset-0 flex h-[62vh] min-h-[420px] items-center justify-center bg-[#ece5db] text-muted-foreground md:h-[68vh]">
-          Nema artikala u ovom izboru — probaj drugu kategoriju.
+
+      {(skeleton || filtered.length === 0) && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#e7dfd2] text-muted-foreground">
+          {skeleton
+            ? 'Učitavam prodavnicu…'
+            : 'Nema artikala u ovom izboru — probaj drugu kategoriju.'}
         </div>
       )}
 
       {filtered.length > 1 && (
         <>
           <button
-            className="btn-lift absolute left-3 top-[31vh] z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-md md:flex"
+            className="btn-lift absolute left-3 top-1/2 z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 shadow-md md:flex"
             onClick={() => go(-1)}
             aria-label="Prethodni artikal"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
-            className="btn-lift absolute right-3 top-[31vh] z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-md md:flex"
+            className="btn-lift absolute right-3 top-1/2 z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 shadow-md md:flex"
             onClick={() => go(1)}
             aria-label="Sledeći artikal"
           >
@@ -558,79 +665,100 @@ export default function Room3D({
         </>
       )}
 
-      {/* Natpis ispod — fokusirani artikal */}
-      <div className="relative mx-auto flex min-h-[8.5rem] max-w-2xl flex-col items-center justify-center px-4 py-4 text-center">
-        {focusedProduct && (
-          <div key={focusedProduct.id} className="card-enter">
-            <div className="flex flex-wrap items-center justify-center gap-1.5">
-              <Badge variant="secondary">{focusedProduct.category}</Badge>
-              {focusedProduct.gender && (
-                <Badge variant="secondary">{focusedProduct.gender}</Badge>
-              )}
-              {focusedProduct.size && (
-                <Badge variant="secondary">{focusedProduct.size}</Badge>
-              )}
+      {/* Donja traka: fokusirani artikal + filteri */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#e7dfd2] via-[#e7dfd2]/85 to-transparent pb-3 pt-6">
+        <div className="mx-auto flex min-h-[6.5rem] max-w-2xl flex-col items-center justify-center px-4 text-center">
+          {focusedProduct && (
+            <div key={focusedProduct.id} className="card-enter">
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                <Badge variant="secondary">{focusedProduct.category}</Badge>
+                {focusedProduct.gender && (
+                  <Badge variant="secondary">{focusedProduct.gender}</Badge>
+                )}
+                {focusedProduct.size && (
+                  <Badge variant="secondary">{focusedProduct.size}</Badge>
+                )}
+              </div>
+              <p className="mt-1 font-display text-lg font-semibold md:text-xl">
+                {focusedProduct.name} —{' '}
+                <span className="font-bold text-primary">
+                  {formatRsd(focusedProduct.price)}
+                </span>
+              </p>
+              <div className="pointer-events-auto mt-2 flex items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="btn-lift"
+                  onClick={() => onView(focusedProduct)}
+                >
+                  Detalji
+                </Button>
+                <Button
+                  size="sm"
+                  className="btn-lift"
+                  onClick={() => onAdd(focusedProduct)}
+                >
+                  <ShoppingBasket className="mr-1 h-4 w-4" /> U korpu
+                </Button>
+                {isAdmin && onEdit && onDelete && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="btn-lift"
+                      onClick={() => onEdit(focusedProduct)}
+                    >
+                      <Pencil className="mr-1 h-4 w-4" /> Izmeni
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="btn-lift"
+                      onClick={() => onDelete(focusedProduct)}
+                    >
+                      <Trash2 className="mr-1 h-4 w-4" /> Obriši
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
-            <p className="mt-2 font-display text-xl font-semibold md:text-2xl">
-              {focusedProduct.name}
-            </p>
-            <p className="font-display text-xl font-bold text-primary md:text-2xl">
-              {formatRsd(focusedProduct.price)}
-            </p>
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="btn-lift"
-                onClick={() => onView(focusedProduct)}
-              >
-                Detalji
-              </Button>
-              <Button
-                size="sm"
-                className="btn-lift"
-                onClick={() => onAdd(focusedProduct)}
-              >
-                <ShoppingBasket className="mr-1 h-4 w-4" /> U korpu
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Filteri na dnu */}
-      <div className="relative mx-auto max-w-4xl space-y-2.5 px-4 pb-10">
-        {genders.length > 0 && (
+        <div className="pointer-events-auto mx-auto max-w-4xl space-y-2 px-4">
+          {genders.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2">
+              {['Sve', ...genders].map((g) => (
+                <button
+                  key={g}
+                  onClick={() => onGenderChange(g)}
+                  className={`btn-lift rounded-full border px-3.5 py-1 text-sm font-semibold transition-colors ${
+                    gender === g
+                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                      : 'border-border bg-card hover:border-primary hover:text-primary'
+                  }`}
+                >
+                  {g === 'Sve' ? 'Sva odeljenja' : g}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap justify-center gap-2">
-            {['Sve', ...genders].map((g) => (
+            {categories.map((c) => (
               <button
-                key={g}
-                onClick={() => onGenderChange(g)}
-                className={`btn-lift rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
-                  gender === g
-                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                    : 'border-border bg-card hover:border-primary hover:text-primary'
+                key={c}
+                onClick={() => onCategoryChange(c)}
+                className={`btn-lift rounded-full border px-3.5 py-1 text-sm font-medium transition-colors ${
+                  category === c
+                    ? 'border-accent bg-accent text-accent-foreground shadow-sm'
+                    : 'border-border bg-card hover:border-accent hover:text-accent'
                 }`}
               >
-                {g === 'Sve' ? 'Sva odeljenja' : g}
+                {c}
               </button>
             ))}
           </div>
-        )}
-        <div className="flex flex-wrap justify-center gap-2">
-          {categories.map((c) => (
-            <button
-              key={c}
-              onClick={() => onCategoryChange(c)}
-              className={`btn-lift rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                category === c
-                  ? 'border-accent bg-accent text-accent-foreground shadow-sm'
-                  : 'border-border bg-card hover:border-accent hover:text-accent'
-              }`}
-            >
-              {c}
-            </button>
-          ))}
         </div>
       </div>
     </section>
