@@ -26,8 +26,8 @@ interface Props {
 const ROOM_R = 6.0
 const ROD_Y = 2.1
 const ROD_OFF = 0.45
-const GARMENT_W = 1.0
-const GARMENT_H = 1.35
+const GARMENT_W = 0.8
+const GARMENT_H = 1.42
 
 /* Tekstura sa slovom kad artikal nema sliku */
 function letterTexture(letter: string, color: string) {
@@ -191,25 +191,36 @@ function createHanger() {
   return g
 }
 
-/* Odeća — silueta sa ramenima, ne običan pravougaonik */
+/* Odeća — silueta sa ramenima i debljinom, ne običan pravougaonik */
 function garmentGeometry() {
   const hw = GARMENT_W / 2
   const s = new THREE.Shape()
-  s.moveTo(-hw * 0.84, 0)
-  s.lineTo(hw * 0.84, 0)
-  s.lineTo(hw * 1.04, -0.22)
-  s.lineTo(hw, -GARMENT_H)
-  s.lineTo(-hw, -GARMENT_H)
-  s.lineTo(-hw * 1.04, -0.22)
+  /* ramena + izrez za kragnu kroz koji viri vešalica */
+  s.moveTo(-hw * 0.82, 0)
+  s.lineTo(-hw * 0.2, -0.03)
+  s.lineTo(0, -0.14)
+  s.lineTo(hw * 0.2, -0.03)
+  s.lineTo(hw * 0.82, 0)
+  s.lineTo(hw * 1.06, -0.26)
+  s.lineTo(hw * 0.96, -GARMENT_H)
+  s.lineTo(-hw * 0.96, -GARMENT_H)
+  s.lineTo(-hw * 1.06, -0.26)
   s.closePath()
-  const geo = new THREE.ShapeGeometry(s, 4)
+  const geo = new THREE.ExtrudeGeometry(s, {
+    depth: 0.09,
+    bevelEnabled: true,
+    bevelThickness: 0.025,
+    bevelSize: 0.025,
+    bevelSegments: 2,
+  })
+  geo.translate(0, 0, -0.045)
   /* UV mapiranje na 0-1 */
   const pos = geo.attributes.position
   const uv = geo.attributes.uv
   for (let i = 0; i < pos.count; i++) {
     uv.setXY(
       i,
-      (pos.getX(i) + hw * 1.04) / (hw * 2.08),
+      (pos.getX(i) + hw * 1.06) / (hw * 2.12),
       1 + pos.getY(i) / GARMENT_H,
     )
   }
@@ -224,41 +235,78 @@ const wrapAngle = (a: number) => {
 
 /* „Škljoc" vešalice — sintetizovan zvuk, bez fajla */
 let audioCtx: AudioContext | null = null
+function ensureAudio() {
+  audioCtx ??= new (window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext })
+      .webkitAudioContext)()
+  if (audioCtx.state === 'suspended') void audioCtx.resume()
+  return audioCtx
+}
+
+/* šuštanje odeće dok prelistaš stender */
+let lastRustle = 0
+function rustleSound(strength: number) {
+  const now = performance.now()
+  if (now - lastRustle < 80) return
+  lastRustle = now
+  try {
+    const ac = ensureAudio()
+    const t = ac.currentTime
+    const dur = 0.14
+    const len = Math.floor(ac.sampleRate * dur)
+    const buf = ac.createBuffer(1, len, ac.sampleRate)
+    const ch = buf.getChannelData(0)
+    for (let i = 0; i < len; i++) {
+      ch[i] = (Math.random() * 2 - 1) * (1 - i / len)
+    }
+    const src = ac.createBufferSource()
+    src.buffer = buf
+    const flt = ac.createBiquadFilter()
+    flt.type = 'bandpass'
+    flt.frequency.value = 750 + Math.random() * 500
+    flt.Q.value = 0.8
+    const g = ac.createGain()
+    g.gain.setValueAtTime(Math.min(0.1, 0.02 + strength * 2), t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur)
+    src.connect(flt).connect(g).connect(ac.destination)
+    src.start(t)
+  } catch {
+    /* preskoči */
+  }
+}
+
 function clackSound() {
   try {
-    audioCtx ??= new (window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext)()
-    if (audioCtx.state === 'suspended') void audioCtx.resume()
-    const t = audioCtx.currentTime
+    const ac = ensureAudio()
+    const t = ac.currentTime
     /* oštar klik — kratka buka kroz filter */
     const dur = 0.06
-    const len = Math.floor(audioCtx.sampleRate * dur)
-    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate)
+    const len = Math.floor(ac.sampleRate * dur)
+    const buf = ac.createBuffer(1, len, ac.sampleRate)
     const ch = buf.getChannelData(0)
     for (let i = 0; i < len; i++) {
       ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3)
     }
-    const src = audioCtx.createBufferSource()
+    const src = ac.createBufferSource()
     src.buffer = buf
-    const flt = audioCtx.createBiquadFilter()
+    const flt = ac.createBiquadFilter()
     flt.type = 'bandpass'
     flt.frequency.value = 1900
     flt.Q.value = 1.1
-    const g = audioCtx.createGain()
+    const g = ac.createGain()
     g.gain.setValueAtTime(0.22, t)
     g.gain.exponentialRampToValueAtTime(0.001, t + dur)
-    src.connect(flt).connect(g).connect(audioCtx.destination)
+    src.connect(flt).connect(g).connect(ac.destination)
     src.start(t)
     /* duboki „toc" drveta */
-    const osc = audioCtx.createOscillator()
+    const osc = ac.createOscillator()
     osc.type = 'sine'
     osc.frequency.setValueAtTime(300, t)
     osc.frequency.exponentialRampToValueAtTime(130, t + 0.08)
-    const g2 = audioCtx.createGain()
+    const g2 = ac.createGain()
     g2.gain.setValueAtTime(0.14, t)
     g2.gain.exponentialRampToValueAtTime(0.001, t + 0.09)
-    osc.connect(g2).connect(audioCtx.destination)
+    osc.connect(g2).connect(ac.destination)
     osc.start(t)
     osc.stop(t + 0.1)
   } catch {
@@ -283,6 +331,8 @@ interface Item {
   baseRot: number
   faceRot: number
   anim: number
+  swing: number
+  swingV: number
 }
 
 export default function Room3D({
@@ -320,8 +370,9 @@ export default function Room3D({
     pinned: number
     focus: number
     panelHover: boolean
+    panelArmed: boolean
     items: Item[]
-  }>({ targetYaw: 0, targetPitch: -0.1, hover: -1, pinned: -1, focus: 0, panelHover: false, items: [] })
+  }>({ targetYaw: 0, targetPitch: -0.1, hover: -1, pinned: -1, focus: 0, panelHover: false, panelArmed: false, items: [] })
 
   /* Glavni efekat — pravi sobu i artikle */
   useEffect(() => {
@@ -570,6 +621,7 @@ export default function Room3D({
     st.hover = -1
     st.pinned = -1
     st.focus = 0
+    st.panelArmed = false
 
     const perWall: Product[][] = [[], [], [], []]
     filtered.forEach((p, i) => perWall[i % 4].push(p))
@@ -679,6 +731,8 @@ export default function Room3D({
           baseRot: rotY + Math.PI / 2,
           faceRot: rotY,
           anim: 0,
+          swing: 0,
+          swingV: 0,
         })
       })
     })
@@ -729,7 +783,9 @@ export default function Room3D({
     let dragStartOffset = 0
     const applyWallOffset = (w: number, off: number) => {
       const clamped = Math.max(-2.2, Math.min(2.2, off))
+      const delta = clamped - wallOffsets[w]
       wallOffsets[w] = clamped
+      if (Math.abs(delta) > 0.004) rustleSound(Math.abs(delta))
       st.items.forEach((it) => {
         if (it.wall !== w) return
         it.basePos.copy(it.origPos).addScaledVector(it.axis, clamped)
@@ -738,6 +794,8 @@ export default function Room3D({
         it.lampG.position.copy(it.lampOrig).addScaledVector(it.axis, clamped)
         it.lampAnchor.copy(it.lampG.position)
         it.lampAnchor.y -= 0.1
+        /* odeća se zaljulja kao na pravoj šipci */
+        it.swingV -= delta * (1.3 + (Math.abs(it.origPos.x * 7 + it.origPos.z * 5) % 0.6))
       })
     }
 
@@ -754,7 +812,15 @@ export default function Room3D({
       dragStartOffset = dragWall >= 0 ? wallOffsets[dragWall] : 0
       el.style.cursor = 'grabbing'
     }
+    let lastMouseX = 0
+    let lastMouseY = 0
+    let lastIsMouse = false
     const onMove = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse') {
+        lastMouseX = e.clientX
+        lastMouseY = e.clientY
+        lastIsMouse = true
+      }
       if (dragging) {
         const dx = e.clientX - downX
         const dy = e.clientY - downY
@@ -774,10 +840,6 @@ export default function Room3D({
         )
         return
       }
-      /* hover — lampa prati miša */
-      if (e.pointerType === 'mouse') {
-        st.hover = pick(e.clientX, e.clientY)
-      }
     }
     const onUp = (e: PointerEvent) => {
       if (!dragging) return
@@ -786,9 +848,26 @@ export default function Room3D({
       el.style.cursor = 'grab'
       if (moved < 6) {
         const idx = pick(e.clientX, e.clientY)
-        /* klik na isti artikal ga otkačinje, klik pored zatvara */
-        st.pinned = idx >= 0 ? (st.pinned === idx ? -1 : idx) : -1
-        if (idx < 0 || st.pinned < 0) setActive(-1)
+        const isTouch = e.pointerType !== 'mouse'
+        if (idx >= 0) {
+          if (st.pinned === idx) {
+            /* telefon: prvi dodir izvlači stvar, drugi otvara karticu */
+            if (isTouch && !st.panelArmed) {
+              st.panelArmed = true
+            } else {
+              st.pinned = -1
+              st.panelArmed = false
+              setActive(-1)
+            }
+          } else {
+            st.pinned = idx
+            st.panelArmed = !isTouch
+          }
+        } else {
+          st.pinned = -1
+          st.panelArmed = false
+          setActive(-1)
+        }
       }
     }
     el.addEventListener('pointerdown', onDown)
@@ -815,6 +894,7 @@ export default function Room3D({
     let lastActive = -2
     let lastPicked = -1
     const tmpV = new THREE.Vector3()
+    const tmpTgt = new THREE.Vector3()
     const coneDir = new THREE.Vector3()
     const UP_VEC = new THREE.Vector3(0, 1, 0)
     const tick = () => {
@@ -823,6 +903,11 @@ export default function Room3D({
       pitch += (st.targetPitch - pitch) * 0.09
       camera.rotation.y = yaw
       camera.rotation.x = pitch
+
+      /* hover se proverava svaki frejm — radi i dok se stvar kreće */
+      if (!dragging && lastIsMouse) {
+        st.hover = pick(lastMouseX, lastMouseY)
+      }
 
       /* najbliži pogledu */
       let focus = 0
@@ -839,8 +924,8 @@ export default function Room3D({
       /* lampa: hover ili fokus */
       const lampIdx =
         st.pinned >= 0 ? st.pinned : st.hover >= 0 ? st.hover : focus
-      /* prozorčić: samo na klik, ili dok je miš na njemu */
-      let panelIdx = st.pinned >= 0 ? st.pinned : -1
+      /* prozorčić: klik (telefon: drugi dodir), ili dok je miš na njemu */
+      let panelIdx = st.pinned >= 0 && st.panelArmed ? st.pinned : -1
       if (panelIdx < 0 && st.panelHover && lastActive >= 0) panelIdx = lastActive
       if (panelIdx !== lastActive) {
         lastActive = panelIdx
@@ -860,27 +945,35 @@ export default function Room3D({
         const picked = i === st.hover || i === st.pinned
         it.anim += ((picked ? 1 : 0) - it.anim) * 0.14
         const a = it.anim
-        /* vešalica se skine sa šipke, izađe u prvi plan i okrene ka tebi */
-        it.group.position.set(
-          it.basePos.x + it.inward.x * 1.6 * a,
-          it.basePos.y + 0.38 * a,
-          it.basePos.z + it.inward.z * 1.6 * a,
-        )
-        it.group.rotation.y =
-          it.baseRot + wrapAngle(it.faceRot - it.baseRot) * a
-        it.group.rotation.z = Math.sin(t * 1.1 + i * 0.8) * 0.02 * (1 - a)
-        it.group.scale.setScalar(1 + 0.32 * a)
+        /* ljuljanje posle prelistavanja — opruga sa prigušenjem */
+        it.swingV += -it.swing * 0.06 - it.swingV * 0.07
+        it.swing += it.swingV
+        if (it.swing > 0.4) it.swing = 0.4
+        if (it.swing < -0.4) it.swing = -0.4
+        /* izvučena stvar dolazi na sredinu ekrana, ispred tebe */
+        camera.getWorldDirection(coneDir)
+        tmpTgt.copy(camera.position).addScaledVector(coneDir, 3.3)
+        tmpTgt.y = 1.82
+        it.group.position.lerpVectors(it.basePos, tmpTgt, a)
+        it.group.rotation.y = it.baseRot + wrapAngle(yaw - it.baseRot) * a
+        it.group.rotation.z =
+          it.swing + Math.sin(t * 1.1 + i * 0.8) * 0.02 * (1 - a)
+        it.group.scale.setScalar(1 + 0.28 * a)
       })
       if (st.items.length && lampIdx >= 0) {
         const it = st.items[lampIdx]
-        spot.position.copy(it.lampAnchor)
         it.hit.getWorldPosition(tmpV)
         spotTarget.position.copy(tmpV)
         spotTarget.updateMatrixWorld()
+        /* kad je stvar napred, svetlo dolazi spreda — ispred nje, ka njoj */
+        tmpTgt.copy(it.basePos).addScaledVector(it.inward, 3.9)
+        tmpTgt.y = 2.5
+        spot.position.copy(it.lampAnchor).lerp(tmpTgt, it.anim)
+        spot.angle = 0.5 + it.anim * 0.15
         /* svetlo prati stvar — jače svetli kad je u prvom planu */
-        spot.intensity += (36 + it.anim * 22 - spot.intensity) * 0.1
+        spot.intensity += (36 + it.anim * 14 - spot.intensity) * 0.1
         lightCone.visible = true
-        coneDir.copy(it.lampAnchor).sub(tmpV)
+        coneDir.copy(spot.position).sub(tmpV)
         const clen = coneDir.length()
         lightCone.position.copy(tmpV).addScaledVector(coneDir, 0.5)
         coneDir.normalize()
@@ -1063,6 +1156,7 @@ export default function Room3D({
                   onClick={() => {
                     stateRef.current.pinned = -1
                     stateRef.current.panelHover = false
+                    stateRef.current.panelArmed = false
                     setActive(-1)
                   }}
                   className="mt-0.5 shrink-0 text-white/50 transition-colors hover:text-white"
