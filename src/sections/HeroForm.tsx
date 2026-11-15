@@ -20,7 +20,6 @@ interface Props {
 }
 
 export default function HeroForm({ open, onOpenChange, settings, onSave }: Props) {
-  const [stamp, setStamp] = useState('')
   const [aboutText, setAboutText] = useState('')
   const [genders, setGenders] = useState<string[]>([])
   const [newGender, setNewGender] = useState('')
@@ -29,7 +28,6 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
 
   useEffect(() => {
     if (open) {
-      setStamp(settings.stamp)
       setAboutText(settings.aboutText ?? '')
       setGenders(settings.genders?.length ? settings.genders : ['Muško', 'Žensko'])
       setNewGender('')
@@ -39,12 +37,10 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!stamp.trim()) return setError('Tekst pečata je obavezan.')
     setBusy(true)
     try {
       await onSave({
-        ...(settings.heroCards ? { heroCards: settings.heroCards } : {}),
-        stamp: stamp.trim(),
+        ...settings,
         aboutText: aboutText.trim(),
         genders,
       })
@@ -64,23 +60,10 @@ export default function HeroForm({ open, onOpenChange, settings, onSave }: Props
             Uredi početnu stranu
           </DialogTitle>
           <DialogDescription>
-            Pečat, tekst „O nama" i odeljenja prodavnice.
+            Tekst „O nama" i odeljenja prodavnice.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1">
-            <Label htmlFor="h-stamp">
-              Tekst pečata (svaki red je poseban red u pečatu)
-            </Label>
-            <Textarea
-              id="h-stamp"
-              rows={2}
-              value={stamp}
-              onChange={(e) => setStamp(e.target.value)}
-              placeholder="Polovno&#10;provereno"
-            />
-          </div>
-
           <div className="space-y-1">
             <Label htmlFor="h-about">
               Tekst za stranicu „O nama" (prazan red = novi pasus)

@@ -19,7 +19,6 @@ import AdminLogin from '@/sections/AdminLogin'
 import ProductForm from '@/sections/ProductForm'
 import OrdersDialog from '@/sections/OrdersDialog'
 import HeroForm from '@/sections/HeroForm'
-import ProductDialog from '@/sections/ProductDialog'
 import { useNavigate } from 'react-router'
 import { useProducts } from '@/hooks/useProducts'
 import { useSharedCart } from '@/lib/cart-context'
@@ -42,7 +41,6 @@ export default function Home() {
   const [heroFormOpen, setHeroFormOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<Product | null>(null)
-  const [viewing, setViewing] = useState<Product | null>(null)
   const [filterGender, setFilterGender] = useState('Sve')
   const [filterCategory, setFilterCategory] = useState('Sve')
 
@@ -131,9 +129,7 @@ export default function Home() {
             loading={loading}
             category={filterCategory}
             gender={filterGender}
-            stamp={settings?.stamp}
             isAdmin={isAdmin}
-            onView={setViewing}
             onAdd={(p) => {
               cart.add(p)
               setCartOpen(true)
@@ -183,15 +179,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      <ProductDialog
-        product={viewing}
-        onClose={() => setViewing(null)}
-        onAdd={(p) => {
-          cart.add(p)
-          setCartOpen(true)
-        }}
-      />
 
       <CartSheet
         open={cartOpen}

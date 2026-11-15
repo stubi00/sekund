@@ -8,7 +8,6 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Product } from '@/types'
 import { formatRsd } from '@/lib/format'
@@ -18,9 +17,7 @@ interface Props {
   loading?: boolean
   category: string
   gender: string
-  stamp?: string
   isAdmin?: boolean
-  onView: (p: Product) => void
   onAdd: (p: Product) => void
   onEdit?: (p: Product) => void
   onDelete?: (p: Product) => void
@@ -56,50 +53,46 @@ function letterTexture(letter: string, color: string) {
   return t
 }
 
-/* Natpis SEKUND na zidu */
+/* Svetleci natpis SEKUND */
 function signTexture() {
   const c = document.createElement('canvas')
   c.width = 2048
-  c.height = 640
+  c.height = 512
   const ctx = c.getContext('2d')!
   ctx.clearRect(0, 0, c.width, c.height)
-  ctx.fillStyle = '#e8e0d2'
   ctx.textAlign = 'center'
-  ctx.font = '600 64px Georgia, serif'
-  ctx.fillText('V I R T U A L N A   P R O D A V N I C A', c.width / 2, 150)
+  ctx.shadowColor = '#ffdf9e'
+  ctx.shadowBlur = 46
+  ctx.fillStyle = '#ffedc9'
   ctx.font = '700 330px Georgia, serif'
-  ctx.fillText('SEKUND', c.width / 2, 470)
+  ctx.fillText('SEKUND', c.width / 2, 390)
   const t = new THREE.CanvasTexture(c)
   t.colorSpace = THREE.SRGBColorSpace
   t.anisotropy = 8
   return t
 }
 
-/* Okrugli pečat na zidu */
-function stampTexture(text: string) {
+/* Zid — fina tekstura maltera */
+function plasterTexture() {
+  const S = 256
   const c = document.createElement('canvas')
-  c.width = 512
-  c.height = 512
+  c.width = S
+  c.height = S
   const ctx = c.getContext('2d')!
-  const col = '#d98a63'
-  ctx.strokeStyle = col
-  ctx.lineWidth = 10
-  ctx.setLineDash([22, 14])
-  ctx.beginPath()
-  ctx.arc(256, 256, 220, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.setLineDash([])
-  ctx.fillStyle = col
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  const lines = text.split('\n').filter(Boolean)
-  const lh = 74
-  const y0 = 256 - ((lines.length - 1) * lh) / 2
-  ctx.font = '700 52px Georgia, serif'
-  lines.forEach((l, i) => ctx.fillText(l.toUpperCase(), 256, y0 + i * lh, 380))
+  ctx.fillStyle = '#3d3831'
+  ctx.fillRect(0, 0, S, S)
+  for (let i = 0; i < 2600; i++) {
+    const x = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1
+    const y = Math.abs(Math.sin(i * 78.233) * 12543.1234) % 1
+    const v = Math.abs(Math.sin(i * 3.7) * 97531.33) % 1
+    ctx.fillStyle = v > 0.5 ? 'rgba(255,245,230,0.025)' : 'rgba(0,0,0,0.05)'
+    ctx.fillRect(x * S, y * S, 2, 2)
+  }
   const t = new THREE.CanvasTexture(c)
   t.colorSpace = THREE.SRGBColorSpace
-  t.anisotropy = 8
+  t.wrapS = THREE.RepeatWrapping
+  t.wrapT = THREE.RepeatWrapping
+  t.repeat.set(6, 2)
   return t
 }
 
@@ -243,9 +236,7 @@ export default function Room3D({
   loading,
   category,
   gender,
-  stamp,
   isAdmin,
-  onView,
   onAdd,
   onEdit,
   onDelete,
@@ -271,8 +262,9 @@ export default function Room3D({
     hover: number
     pinned: number
     focus: number
+    panelHover: boolean
     items: Item[]
-  }>({ targetYaw: 0, targetPitch: -0.1, hover: -1, pinned: -1, focus: 0, items: [] })
+  }>({ targetYaw: 0, targetPitch: -0.1, hover: -1, pinned: -1, focus: 0, panelHover: false, items: [] })
 
   /* Glavni efekat — pravi sobu i artikle */
   useEffect(() => {
@@ -340,14 +332,32 @@ export default function Room3D({
     })
 
     /* Reflektor koji prati aktivan artikal */
-    const spot = new THREE.SpotLight(0xffe2b8, 0, 6, 0.42, 0.55, 1.6)
+    const spot = new THREE.SpotLight(0xffe2b8, 0, 6, 0.5, 0.55, 1.4)
+    spot.castShadow = true
+    spot.shadow.mapSize.set(1024, 1024)
+    spot.shadow.bias = -0.0004
     const spotTarget = new THREE.Object3D()
     scene.add(spot, spotTarget)
     spot.target = spotTarget
+    /* vidljivi konus svetla */
+    const coneMat = new THREE.MeshBasicMaterial({
+      color: '#ffd9a0',
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+    const lightCone = new THREE.Mesh(
+      new THREE.ConeGeometry(0.62, 1.75, 24, 1, true),
+      coneMat,
+    )
+    lightCone.visible = false
+    scene.add(lightCone)
 
     /* Materijali sobe — tamna butik atmosfera */
     const wallMat = new THREE.MeshStandardMaterial({
-      color: '#3d3831',
+      map: plasterTexture(),
       roughness: 0.95,
     })
     const metalMat = new THREE.MeshStandardMaterial({
@@ -435,28 +445,20 @@ export default function Room3D({
       })
     })
 
-    /* Natpis na severnom zidu */
-    const sign = new THREE.Mesh(
-      new THREE.PlaneGeometry(4.6, 1.44),
-      new THREE.MeshBasicMaterial({ map: signTexture(), transparent: true }),
-    )
-    sign.position.set(0, 3.35, -ROOM_R + 0.02)
-    scene.add(sign)
-
-    /* Pečat na istočnom zidu */
-    let stampMesh: THREE.Mesh | null = null
-    if (stamp) {
-      stampMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.85, 0.85),
-        new THREE.MeshBasicMaterial({
-          map: stampTexture(stamp),
-          transparent: true,
-        }),
-      )
-      stampMesh.rotation.y = -Math.PI / 2
-      stampMesh.position.set(ROOM_R - 0.02, 3.15, 1.4)
-      scene.add(stampMesh)
-    }
+    /* Svetleci natpis SEKUND na sredini svakog zida */
+    const signTex = signTexture()
+    const signMat = new THREE.MeshBasicMaterial({
+      map: signTex,
+      transparent: true,
+    })
+    const signs: THREE.Mesh[] = []
+    wallDefs.forEach(({ nx, nz, rotY }) => {
+      const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.05), signMat)
+      sign.rotation.y = rotY
+      sign.position.set(nx * (ROOM_R - 0.03), 3.4, nz * (ROOM_R - 0.03))
+      scene.add(sign)
+      signs.push(sign)
+    })
 
     /* Artikli — raspoređeni po zidovima */
     const texCache = new Map<string, THREE.Texture>()
@@ -647,7 +649,7 @@ export default function Room3D({
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       const k = Math.max(0.5, Math.min(1, camera.aspect / 1.4))
-      sign.scale.setScalar(k)
+      signs.forEach((sg) => sg.scale.setScalar(k))
     }
     resize()
     const ro = new ResizeObserver(resize)
@@ -678,36 +680,51 @@ export default function Room3D({
       })
       st.focus = focus
 
-      const activeIdx = st.pinned >= 0 ? st.pinned : st.hover >= 0 ? st.hover : focus
-      if (activeIdx !== lastActive) {
-        lastActive = activeIdx
-        setActive(st.items.length ? activeIdx : -1)
+      /* lampa: hover ili fokus */
+      const lampIdx =
+        st.pinned >= 0 ? st.pinned : st.hover >= 0 ? st.hover : focus
+      /* prozorčić: pin ili hover ili dok je miš na njemu */
+      let panelIdx =
+        st.pinned >= 0 ? st.pinned : st.hover >= 0 ? st.hover : -1
+      if (panelIdx < 0 && st.panelHover && lastActive >= 0) panelIdx = lastActive
+      if (panelIdx !== lastActive) {
+        lastActive = panelIdx
+        setActive(st.items.length ? panelIdx : -1)
       }
 
       /* lampe i reflektor */
       st.items.forEach((it, i) => {
-        const on = i === activeIdx
+        const on = i === lampIdx
         it.lampMat.emissiveIntensity +=
           ((on ? 1.4 : 0) - it.lampMat.emissiveIntensity) * 0.15
         const s = on ? 1.06 : 1
         const cur = it.group.scale.x
         it.group.scale.setScalar(cur + (s - cur) * 0.12)
       })
-      if (st.items.length && activeIdx >= 0) {
-        const it = st.items[activeIdx]
+      if (st.items.length && lampIdx >= 0) {
+        const it = st.items[lampIdx]
         spot.position.copy(it.lampAnchor)
         it.hit.getWorldPosition(tmpV)
         spotTarget.position.copy(tmpV)
         spotTarget.updateMatrixWorld()
         spot.intensity += (36 - spot.intensity) * 0.1
+        lightCone.visible = true
+        lightCone.position.set(
+          it.lampAnchor.x,
+          it.lampAnchor.y - 1.0,
+          it.lampAnchor.z,
+        )
+        coneMat.opacity += (0.07 - coneMat.opacity) * 0.1
       } else {
         spot.intensity += (0 - spot.intensity) * 0.1
+        coneMat.opacity += (0 - coneMat.opacity) * 0.1
+        if (coneMat.opacity < 0.005) lightCone.visible = false
       }
 
       /* pozicija prozorčića sa podacima */
       const panel = panelRef.current
-      if (panel && st.items.length && activeIdx >= 0) {
-        const it = st.items[activeIdx]
+      if (panel && st.items.length && panelIdx >= 0) {
+        const it = st.items[panelIdx]
         it.hit.getWorldPosition(tmpV)
         tmpV.y += 0.15
         tmpV.project(camera)
@@ -717,14 +734,13 @@ export default function Room3D({
         const sy = ((1 - tmpV.y) / 2) * h
         const pw = panel.offsetWidth
         const onRight = sx < w * 0.55
-        panel.style.left = `${Math.max(8, Math.min(w - pw - 8, onRight ? sx + 70 : sx - pw - 70))}px`
+        panel.style.left = `${Math.max(8, Math.min(w - pw - 8, onRight ? sx + 52 : sx - pw - 52))}px`
         panel.style.top = `${Math.max(8, Math.min(h - 40, sy - 70))}px`
         panel.style.opacity = tmpV.z < 1 ? '1' : '0'
       } else if (panel) {
         panel.style.opacity = '0'
       }
 
-      if (stampMesh) stampMesh.rotation.z = t * 0.12
       renderer.render(scene, camera)
       raf = requestAnimationFrame(tick)
     }
@@ -753,7 +769,7 @@ export default function Room3D({
       mount.removeChild(el)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredKey, stamp])
+  }, [filteredKey])
 
   const activeProduct =
     active >= 0 && stateRef.current.items[active]
@@ -788,6 +804,14 @@ export default function Room3D({
         ref={mountRef}
         className="h-[calc(100dvh-4rem)] min-h-[540px] w-full select-none"
       />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,0.32) 100%)',
+        }}
+        aria-hidden
+      />
 
       {(skeleton || filtered.length === 0) && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#2a2620] text-white/60">
@@ -819,19 +843,28 @@ export default function Room3D({
       {/* Mali prozorčić pored artikla */}
       <div
         ref={panelRef}
-        className="pointer-events-none absolute z-30 w-56 transition-opacity duration-200"
+        className="pointer-events-none absolute z-30 w-60 transition-opacity duration-200"
         style={{ opacity: 0 }}
+        onMouseEnter={() => {
+          stateRef.current.panelHover = true
+        }}
+        onMouseLeave={() => {
+          stateRef.current.panelHover = false
+        }}
       >
         {activeProduct && (
-          <div className="pointer-events-auto overflow-hidden rounded-xl border border-border bg-card/95 shadow-2xl backdrop-blur">
+          <div className="pointer-events-auto overflow-hidden rounded-2xl border border-white/15 bg-[#231f1a]/95 text-[#f2ece1] shadow-[0_18px_50px_-12px_rgba(0,0,0,0.8)] backdrop-blur-md">
             {(activeProduct.images?.[0] || activeProduct.imageUrl) && (
-              <img
-                src={activeProduct.images?.[0] || activeProduct.imageUrl}
-                alt={activeProduct.name}
-                className="h-28 w-full object-cover"
-              />
+              <div className="relative">
+                <img
+                  src={activeProduct.images?.[0] || activeProduct.imageUrl}
+                  alt={activeProduct.name}
+                  className="h-32 w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#231f1a]/70 to-transparent" />
+              </div>
             )}
-            <div className="p-3">
+            <div className="p-3.5">
               <div className="flex items-start justify-between gap-2">
                 <p className="font-display text-base font-semibold leading-tight">
                   {activeProduct.name}
@@ -839,49 +872,45 @@ export default function Room3D({
                 <button
                   onClick={() => {
                     stateRef.current.pinned = -1
+                    stateRef.current.panelHover = false
                     setActive(-1)
                   }}
-                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  className="mt-0.5 shrink-0 text-white/50 transition-colors hover:text-white"
                   aria-label="Zatvori"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
-                <Badge variant="secondary" className="text-[11px]">
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium">
                   {activeProduct.category}
-                </Badge>
+                </span>
                 {activeProduct.gender && (
-                  <Badge variant="secondary" className="text-[11px]">
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium">
                     {activeProduct.gender}
-                  </Badge>
+                  </span>
                 )}
                 {activeProduct.size && (
-                  <Badge variant="secondary" className="text-[11px]">
+                  <span className="rounded-full bg-[#d98a63]/25 px-2 py-0.5 text-[11px] font-semibold text-[#f0b98f]">
                     Vel. {activeProduct.size}
-                  </Badge>
+                  </span>
                 )}
               </div>
-              <p className="mt-2 font-display text-lg font-bold text-primary">
+              {activeProduct.description && (
+                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-white/65">
+                  {activeProduct.description}
+                </p>
+              )}
+              <p className="mt-2.5 font-display text-xl font-bold text-[#f0b98f]">
                 {formatRsd(activeProduct.price)}
               </p>
-              <div className="mt-2 flex gap-1.5">
-                <Button
-                  size="sm"
-                  className="btn-lift h-8 flex-1 text-xs"
-                  onClick={() => onAdd(activeProduct)}
-                >
-                  <ShoppingBasket className="mr-1 h-3.5 w-3.5" /> U korpu
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="btn-lift h-8 flex-1 text-xs"
-                  onClick={() => onView(activeProduct)}
-                >
-                  Detalji
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                className="btn-lift mt-2.5 h-9 w-full text-xs font-semibold"
+                onClick={() => onAdd(activeProduct)}
+              >
+                <ShoppingBasket className="mr-1.5 h-3.5 w-3.5" /> Dodaj u korpu
+              </Button>
               {isAdmin && onEdit && onDelete && (
                 <div className="mt-1.5 flex gap-1.5">
                   <Button
@@ -906,6 +935,7 @@ export default function Room3D({
           </div>
         )}
       </div>
+
     </section>
   )
 }
