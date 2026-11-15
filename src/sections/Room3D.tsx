@@ -222,6 +222,50 @@ const wrapAngle = (a: number) => {
   return a
 }
 
+/* „Škljoc" vešalice — sintetizovan zvuk, bez fajla */
+let audioCtx: AudioContext | null = null
+function clackSound() {
+  try {
+    audioCtx ??= new (window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext)()
+    if (audioCtx.state === 'suspended') void audioCtx.resume()
+    const t = audioCtx.currentTime
+    /* oštar klik — kratka buka kroz filter */
+    const dur = 0.06
+    const len = Math.floor(audioCtx.sampleRate * dur)
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate)
+    const ch = buf.getChannelData(0)
+    for (let i = 0; i < len; i++) {
+      ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3)
+    }
+    const src = audioCtx.createBufferSource()
+    src.buffer = buf
+    const flt = audioCtx.createBiquadFilter()
+    flt.type = 'bandpass'
+    flt.frequency.value = 1900
+    flt.Q.value = 1.1
+    const g = audioCtx.createGain()
+    g.gain.setValueAtTime(0.22, t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur)
+    src.connect(flt).connect(g).connect(audioCtx.destination)
+    src.start(t)
+    /* duboki „toc" drveta */
+    const osc = audioCtx.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(300, t)
+    osc.frequency.exponentialRampToValueAtTime(130, t + 0.08)
+    const g2 = audioCtx.createGain()
+    g2.gain.setValueAtTime(0.14, t)
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.09)
+    osc.connect(g2).connect(audioCtx.destination)
+    osc.start(t)
+    osc.stop(t + 0.1)
+  } catch {
+    /* browser bez zvuka — preskoči */
+  }
+}
+
 interface Item {
   group: THREE.Group
   product: Product
@@ -769,7 +813,10 @@ export default function Room3D({
     const clock = new THREE.Clock()
     let raf = 0
     let lastActive = -2
+    let lastPicked = -1
     const tmpV = new THREE.Vector3()
+    const coneDir = new THREE.Vector3()
+    const UP_VEC = new THREE.Vector3(0, 1, 0)
     const tick = () => {
       const t = clock.getElapsedTime()
       yaw += wrapAngle(st.targetYaw - yaw) * 0.09
@@ -801,6 +848,11 @@ export default function Room3D({
       }
 
       /* lampe + animacija „skidanja sa stendera" */
+      const pickedIdx = st.pinned >= 0 ? st.pinned : st.hover
+      if (pickedIdx !== lastPicked) {
+        if (pickedIdx >= 0 && pickedIdx < st.items.length) clackSound()
+        lastPicked = pickedIdx
+      }
       st.items.forEach((it, i) => {
         const on = i === lampIdx
         it.lampMat.emissiveIntensity +=
@@ -808,16 +860,16 @@ export default function Room3D({
         const picked = i === st.hover || i === st.pinned
         it.anim += ((picked ? 1 : 0) - it.anim) * 0.14
         const a = it.anim
-        /* vešalica se skine sa šipke, izađe napred i okrene ka tebi */
+        /* vešalica se skine sa šipke, izađe u prvi plan i okrene ka tebi */
         it.group.position.set(
-          it.basePos.x + it.inward.x * 1.15 * a,
-          it.basePos.y + 0.3 * a,
-          it.basePos.z + it.inward.z * 1.15 * a,
+          it.basePos.x + it.inward.x * 1.6 * a,
+          it.basePos.y + 0.38 * a,
+          it.basePos.z + it.inward.z * 1.6 * a,
         )
         it.group.rotation.y =
           it.baseRot + wrapAngle(it.faceRot - it.baseRot) * a
         it.group.rotation.z = Math.sin(t * 1.1 + i * 0.8) * 0.02 * (1 - a)
-        it.group.scale.setScalar(1 + 0.1 * a)
+        it.group.scale.setScalar(1 + 0.32 * a)
       })
       if (st.items.length && lampIdx >= 0) {
         const it = st.items[lampIdx]
@@ -825,14 +877,16 @@ export default function Room3D({
         it.hit.getWorldPosition(tmpV)
         spotTarget.position.copy(tmpV)
         spotTarget.updateMatrixWorld()
-        spot.intensity += (36 - spot.intensity) * 0.1
+        /* svetlo prati stvar — jače svetli kad je u prvom planu */
+        spot.intensity += (36 + it.anim * 22 - spot.intensity) * 0.1
         lightCone.visible = true
-        lightCone.position.set(
-          it.lampAnchor.x,
-          it.lampAnchor.y - 1.0,
-          it.lampAnchor.z,
-        )
-        coneMat.opacity += (0.07 - coneMat.opacity) * 0.1
+        coneDir.copy(it.lampAnchor).sub(tmpV)
+        const clen = coneDir.length()
+        lightCone.position.copy(tmpV).addScaledVector(coneDir, 0.5)
+        coneDir.normalize()
+        lightCone.quaternion.setFromUnitVectors(UP_VEC, coneDir)
+        lightCone.scale.set(1, clen / 1.75, 1)
+        coneMat.opacity += (0.055 + it.anim * 0.05 - coneMat.opacity) * 0.1
       } else {
         spot.intensity += (0 - spot.intensity) * 0.1
         coneMat.opacity += (0 - coneMat.opacity) * 0.1
@@ -851,9 +905,16 @@ export default function Room3D({
         const sx = ((tmpV.x + 1) / 2) * w
         const sy = ((1 - tmpV.y) / 2) * h
         const pw = panel.offsetWidth
-        const onRight = sx < w * 0.55
-        panel.style.left = `${Math.max(8, Math.min(w - pw - 8, onRight ? sx + 52 : sx - pw - 52))}px`
-        panel.style.top = `${Math.max(8, Math.min(h - 40, sy - 70))}px`
+        const ph = panel.offsetHeight
+        if (w < 640) {
+          /* telefon: kartica pri dnu, stvar slobodna u prvom planu */
+          panel.style.left = '8px'
+          panel.style.top = `${Math.max(8, h - ph - 12)}px`
+        } else {
+          const onRight = sx < w * 0.55
+          panel.style.left = `${Math.max(8, Math.min(w - pw - 8, onRight ? sx + 72 : sx - pw - 72))}px`
+          panel.style.top = `${Math.max(8, Math.min(h - ph - 8, sy - 40))}px`
+        }
         panel.style.opacity = tmpV.z < 1 ? '1' : '0'
       } else if (panel) {
         panel.style.opacity = '0'
@@ -961,7 +1022,7 @@ export default function Room3D({
       {/* Mali prozorčić pored artikla */}
       <div
         ref={panelRef}
-        className="pointer-events-none absolute z-30 w-60 transition-opacity duration-200"
+        className="pointer-events-none absolute z-30 w-[calc(100vw-1rem)] transition-opacity duration-200 sm:w-56"
         style={{ opacity: 0 }}
         onMouseEnter={() => {
           stateRef.current.panelHover = true
@@ -988,14 +1049,14 @@ export default function Room3D({
                 <img
                   src={activeProduct.images?.[0] || activeProduct.imageUrl}
                   alt={activeProduct.name}
-                  className="h-32 w-full object-cover"
+                  className="h-24 w-full object-cover"
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#231f1a]/70 to-transparent" />
               </div>
             )}
-            <div className="p-3.5">
+            <div className="p-3">
               <div className="flex items-start justify-between gap-2">
-                <p className="font-display text-base font-semibold leading-tight">
+                <p className="font-display text-sm font-semibold leading-tight">
                   {activeProduct.name}
                 </p>
                 <button
@@ -1026,16 +1087,16 @@ export default function Room3D({
                 )}
               </div>
               {activeProduct.description && (
-                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-white/65">
+                <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-white/65">
                   {activeProduct.description}
                 </p>
               )}
-              <p className="mt-2.5 font-display text-xl font-bold text-[#f0b98f]">
+              <p className="mt-2 font-display text-lg font-bold text-[#f0b98f]">
                 {formatRsd(activeProduct.price)}
               </p>
               <Button
                 size="sm"
-                className="btn-lift mt-2.5 h-9 w-full text-xs font-semibold"
+                className="btn-lift mt-2 h-8 w-full text-xs font-semibold"
                 onClick={() => onAdd(activeProduct)}
               >
                 <ShoppingBasket className="mr-1.5 h-3.5 w-3.5" /> Dodaj u korpu
