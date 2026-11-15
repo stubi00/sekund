@@ -8,6 +8,7 @@ import {
   Menu,
   X,
 } from 'lucide-react'
+import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -114,6 +115,9 @@ export default function Header({
               </div>
             </div>
           </div>
+          <Link to="/kontakt" className="transition-colors hover:text-primary">
+            Kontakt
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -165,6 +169,13 @@ export default function Header({
             >
               Početna
             </a>
+            <Link
+              to="/kontakt"
+              onClick={() => setMobileOpen(false)}
+              className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
+            >
+              Kontakt
+            </Link>
 
             <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Prodavnica
