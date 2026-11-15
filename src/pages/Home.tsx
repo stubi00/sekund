@@ -13,14 +13,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import Header from '@/sections/Header'
-import VirtualStore from '@/sections/VirtualStore'
+import Room3D from '@/sections/Room3D'
 import Catalog from '@/sections/Catalog'
 import CartSheet from '@/sections/CartSheet'
 import AdminLogin from '@/sections/AdminLogin'
 import ProductForm from '@/sections/ProductForm'
 import OrdersDialog from '@/sections/OrdersDialog'
 import HeroForm from '@/sections/HeroForm'
-import AboutSection from '@/sections/AboutSection'
 import ProductDialog from '@/sections/ProductDialog'
 import Footer from '@/sections/Footer'
 import { useNavigate } from 'react-router'
@@ -119,7 +118,7 @@ export default function Home() {
       />
 
       <main className="flex-1">
-        <VirtualStore
+        <Room3D
           products={products}
           loading={loading}
           genders={genders}
@@ -202,7 +201,6 @@ export default function Home() {
           />
         )}
 
-        <AboutSection text={settings?.aboutText} />
       </main>
 
       <Footer />
