@@ -227,6 +227,11 @@ interface Item {
   product: Product
   hit: THREE.Mesh
   angle: number
+  wall: number
+  axis: THREE.Vector3
+  origPos: THREE.Vector3
+  lampG: THREE.Group
+  lampOrig: THREE.Vector3
   lampMat: THREE.MeshStandardMaterial
   lampAnchor: THREE.Vector3
   basePos: THREE.Vector3
@@ -249,6 +254,9 @@ export default function Room3D({
   const mountRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState<number>(-1)
+  const [lightbox, setLightbox] = useState<{ imgs: string[]; i: number } | null>(
+    null,
+  )
 
   const filtered = useMemo(
     () =>
@@ -539,8 +547,8 @@ export default function Room3D({
         group.rotation.y = rotY + Math.PI / 2
 
         group.add(createHanger())
-        /* vešalica malo izađe ka prostoriji da prati ramena odeće */
-        group.children[0].position.x = 0.22
+        /* vešalica u „ramenima" odeće — kuka viri iznad kragnе */
+        group.children[0].position.x = 0.28
 
         const img = p.images?.[0] || p.imageUrl
         let tex: THREE.Texture
@@ -564,7 +572,8 @@ export default function Room3D({
           alphaTest: 0.08,
         })
         const garment = new THREE.Mesh(geo, mat)
-        garment.position.set(0.4, -0.13, 0.03)
+        /* gornji rub odeće prekriva ramena vešalice — kuka ostaje da viri */
+        garment.position.set(0.38, -0.05, 0.03)
         garment.castShadow = true
         group.add(garment)
 
@@ -610,6 +619,11 @@ export default function Room3D({
           product: p,
           hit,
           angle: Math.atan2(-px, -pz),
+          wall: w,
+          axis: new THREE.Vector3(nx === 0 ? 1 : 0, 0, nz === 0 ? 1 : 0),
+          origPos: group.position.clone(),
+          lampG,
+          lampOrig: lampG.position.clone(),
           lampMat,
           lampAnchor: new THREE.Vector3(
             px + -nx * 0.55,
@@ -665,7 +679,25 @@ export default function Room3D({
         : -1
     }
 
-    /* Drag: levo → soba u levo */
+    /* prelistavanje šipke — vučeš artikal levo-desno duž stendera */
+    const wallOffsets = [0, 0, 0, 0]
+    let dragWall = -1
+    let dragStartOffset = 0
+    const applyWallOffset = (w: number, off: number) => {
+      const clamped = Math.max(-2.2, Math.min(2.2, off))
+      wallOffsets[w] = clamped
+      st.items.forEach((it) => {
+        if (it.wall !== w) return
+        it.basePos.copy(it.origPos).addScaledVector(it.axis, clamped)
+        /* fokus i lampa prate artikal dok prelistaš */
+        it.angle = Math.atan2(-it.basePos.x, -it.basePos.z)
+        it.lampG.position.copy(it.lampOrig).addScaledVector(it.axis, clamped)
+        it.lampAnchor.copy(it.lampG.position)
+        it.lampAnchor.y -= 0.1
+      })
+    }
+
+    /* Drag: levo → soba u levo; preko artikla → prelistavanje šipke */
     const onDown = (e: PointerEvent) => {
       dragging = true
       moved = 0
@@ -673,6 +705,9 @@ export default function Room3D({
       downY = e.clientY
       startYaw = st.targetYaw
       startPitch = st.targetPitch
+      const idx = pick(e.clientX, e.clientY)
+      dragWall = idx >= 0 ? st.items[idx].wall : -1
+      dragStartOffset = dragWall >= 0 ? wallOffsets[dragWall] : 0
       el.style.cursor = 'grabbing'
     }
     const onMove = (e: PointerEvent) => {
@@ -680,6 +715,14 @@ export default function Room3D({
         const dx = e.clientX - downX
         const dy = e.clientY - downY
         moved = Math.max(moved, Math.abs(dx) + Math.abs(dy) * 0.3)
+        if (dragWall >= 0) {
+          /* prelistaj odeću duž šipke */
+          applyWallOffset(
+            dragWall,
+            dragStartOffset + dx * (10 / mount.clientWidth),
+          )
+          return
+        }
         st.targetYaw = startYaw + dx * pxToAngle()
         st.targetPitch = Math.max(
           -0.28,
@@ -687,7 +730,7 @@ export default function Room3D({
         )
         return
       }
-      /* hover — lampa i prozorčić prate miša */
+      /* hover — lampa prati miša */
       if (e.pointerType === 'mouse') {
         st.hover = pick(e.clientX, e.clientY)
       }
@@ -695,6 +738,7 @@ export default function Room3D({
     const onUp = (e: PointerEvent) => {
       if (!dragging) return
       dragging = false
+      dragWall = -1
       el.style.cursor = 'grab'
       if (moved < 6) {
         const idx = pick(e.clientX, e.clientY)
@@ -929,13 +973,24 @@ export default function Room3D({
         {activeProduct && (
           <div className="pointer-events-auto overflow-hidden rounded-2xl border border-white/15 bg-[#231f1a]/95 text-[#f2ece1] shadow-[0_18px_50px_-12px_rgba(0,0,0,0.8)] backdrop-blur-md">
             {(activeProduct.images?.[0] || activeProduct.imageUrl) && (
-              <div className="relative">
+              <div
+                className="relative cursor-zoom-in"
+                title="Klikni za veliki prikaz"
+                onClick={() => {
+                  const imgs = activeProduct.images?.length
+                    ? activeProduct.images
+                    : activeProduct.imageUrl
+                      ? [activeProduct.imageUrl]
+                      : []
+                  if (imgs.length) setLightbox({ imgs, i: 0 })
+                }}
+              >
                 <img
                   src={activeProduct.images?.[0] || activeProduct.imageUrl}
                   alt={activeProduct.name}
                   className="h-32 w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#231f1a]/70 to-transparent" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#231f1a]/70 to-transparent" />
               </div>
             )}
             <div className="p-3.5">
@@ -1010,6 +1065,64 @@ export default function Room3D({
         )}
       </div>
 
+      {/* Veliki prikaz slike */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-6 backdrop-blur-sm"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25"
+            onClick={() => setLightbox(null)}
+            aria-label="Zatvori sliku"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {lightbox.imgs.length > 1 && (
+            <>
+              <button
+                className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setLightbox({
+                    ...lightbox,
+                    i:
+                      (lightbox.i - 1 + lightbox.imgs.length) %
+                      lightbox.imgs.length,
+                  })
+                }}
+                aria-label="Prethodna slika"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/25"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setLightbox({
+                    ...lightbox,
+                    i: (lightbox.i + 1) % lightbox.imgs.length,
+                  })
+                }}
+                aria-label="Sledeća slika"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          )}
+          <img
+            src={lightbox.imgs[lightbox.i]}
+            alt="Veliki prikaz artikla"
+            className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {lightbox.imgs.length > 1 && (
+            <span className="absolute bottom-5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+              {lightbox.i + 1} / {lightbox.imgs.length}
+            </span>
+          )}
+        </div>
+      )}
     </section>
   )
 }
