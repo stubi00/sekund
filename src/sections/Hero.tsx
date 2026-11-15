@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { ArrowDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { SiteSettings } from '@/types'
@@ -18,6 +19,20 @@ interface Props {
 export default function Hero({ settings }: Props) {
   const s = settings ?? FALLBACK
   const [first, second] = s.heroCards
+  const [scrollY, setScrollY] = useState(0)
+
+  useEffect(() => {
+    let raf = 0
+    const onScroll = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => setScrollY(window.scrollY))
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
   return (
     <section
       id="pocetna"
@@ -25,10 +40,12 @@ export default function Hero({ settings }: Props) {
     >
       <div
         className="hero-blob left-[-6rem] top-[-4rem] h-72 w-72 bg-primary/15"
+        style={{ transform: `translateY(${scrollY * 0.18}px)` }}
         aria-hidden
       />
       <div
         className="hero-blob bottom-[-6rem] right-[10%] h-80 w-80 bg-accent/15"
+        style={{ transform: `translateY(${scrollY * -0.12}px)` }}
         aria-hidden
       />
       <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
@@ -74,7 +91,10 @@ export default function Hero({ settings }: Props) {
           </div>
         </div>
 
-        <div className="relative flex items-center justify-center">
+        <div
+          className="relative flex items-center justify-center"
+          style={{ transform: `translateY(${scrollY * 0.06}px)` }}
+        >
           {first && (
             <div className="tag-card w-56 rotate-[-4deg] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
               {first.imageUrl && (

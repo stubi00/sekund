@@ -3,6 +3,7 @@ import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ProductCard from '@/sections/ProductCard'
+import Reveal from '@/components/Reveal'
 import type { Product } from '@/types'
 
 interface Props {
@@ -71,7 +72,7 @@ export default function Catalog({
 
   return (
     <section id="katalog" className="mx-auto max-w-6xl px-4 py-16">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <Reveal className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             Ponuda
@@ -88,7 +89,7 @@ export default function Catalog({
             <Plus className="mr-1 h-4 w-4" /> Dodaj artikal
           </Button>
         )}
-      </div>
+      </Reveal>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-xs">
@@ -182,16 +183,16 @@ export default function Catalog({
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((p, i) => (
-            <ProductCard
-              key={p.id}
-              product={p}
-              isAdmin={isAdmin}
-              index={i}
-              onAdd={onAdd}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onView={onView}
-            />
+            <Reveal key={p.id} delay={Math.min(i % 4, 3) * 70}>
+              <ProductCard
+                product={p}
+                isAdmin={isAdmin}
+                onAdd={onAdd}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onView={onView}
+              />
+            </Reveal>
           ))}
         </div>
       )}
