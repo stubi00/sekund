@@ -229,6 +229,11 @@ interface Item {
   angle: number
   lampMat: THREE.MeshStandardMaterial
   lampAnchor: THREE.Vector3
+  basePos: THREE.Vector3
+  inward: THREE.Vector3
+  baseRot: number
+  faceRot: number
+  anim: number
 }
 
 export default function Room3D({
@@ -521,7 +526,8 @@ export default function Room3D({
     perWall.forEach((list, w) => {
       const { nx, nz, rotY } = wallDefs[w]
       const count = list.length
-      const spacing = count > 1 ? Math.min(1.6, usable / (count - 1)) : 0
+      /* na stenderu stvari vise jedna do druge, leđa uz leđa */
+      const spacing = count > 1 ? Math.min(0.6, usable / (count - 1)) : 0
       list.forEach((p, j) => {
         const s = count > 1 ? -((count - 1) * spacing) / 2 + j * spacing : 0
         const px = nx !== 0 ? nx * (ROOM_R - ROD_OFF) : s
@@ -529,9 +535,12 @@ export default function Room3D({
 
         const group = new THREE.Group()
         group.position.set(px, ROD_Y, pz)
-        group.rotation.y = rotY
+        /* okrenuto bočno — kao na pravom stenderu */
+        group.rotation.y = rotY + Math.PI / 2
 
         group.add(createHanger())
+        /* vešalica malo izađe ka prostoriji da prati ramena odeće */
+        group.children[0].position.x = 0.22
 
         const img = p.images?.[0] || p.imageUrl
         let tex: THREE.Texture
@@ -552,13 +561,24 @@ export default function Room3D({
           map: tex,
           roughness: 0.9,
           side: THREE.DoubleSide,
+          alphaTest: 0.08,
         })
         const garment = new THREE.Mesh(geo, mat)
-        garment.position.y = -0.13
-        garment.position.z = 0.03
+        garment.position.set(0.4, -0.13, 0.03)
         garment.castShadow = true
-        garment.userData.itemIndex = st.items.length
         group.add(garment)
+
+        /* nevidljiva zona za miš — lako se „uhvati" i uski profil */
+        const hit = new THREE.Mesh(
+          new THREE.BoxGeometry(GARMENT_W + 0.2, GARMENT_H + 0.35, 0.5),
+          new THREE.MeshBasicMaterial({
+            colorWrite: false,
+            depthWrite: false,
+          }),
+        )
+        hit.position.set(0.4, -GARMENT_H / 2 - 0.05, 0)
+        hit.userData.itemIndex = st.items.length
+        group.add(hit)
 
         itemRoot.add(group)
 
@@ -588,7 +608,7 @@ export default function Room3D({
         st.items.push({
           group,
           product: p,
-          hit: garment,
+          hit,
           angle: Math.atan2(-px, -pz),
           lampMat,
           lampAnchor: new THREE.Vector3(
@@ -596,6 +616,11 @@ export default function Room3D({
             ROD_Y + 0.95,
             pz + -nz * 0.55,
           ),
+          basePos: group.position.clone(),
+          inward: new THREE.Vector3(-nx, 0, -nz),
+          baseRot: rotY + Math.PI / 2,
+          faceRot: rotY,
+          anim: 0,
         })
       })
     })
@@ -717,7 +742,6 @@ export default function Room3D({
           bestD = d
           focus = i
         }
-        it.group.rotation.z = Math.sin(t * 1.1 + i * 0.8) * 0.015
       })
       st.focus = focus
 
@@ -732,14 +756,24 @@ export default function Room3D({
         setActive(st.items.length ? panelIdx : -1)
       }
 
-      /* lampe i reflektor */
+      /* lampe + animacija „skidanja sa stendera" */
       st.items.forEach((it, i) => {
         const on = i === lampIdx
         it.lampMat.emissiveIntensity +=
           ((on ? 1.4 : 0) - it.lampMat.emissiveIntensity) * 0.15
-        const s = on ? 1.06 : 1
-        const cur = it.group.scale.x
-        it.group.scale.setScalar(cur + (s - cur) * 0.12)
+        const picked = i === st.hover || i === st.pinned
+        it.anim += ((picked ? 1 : 0) - it.anim) * 0.14
+        const a = it.anim
+        /* vešalica se skine sa šipke, izađe napred i okrene ka tebi */
+        it.group.position.set(
+          it.basePos.x + it.inward.x * 1.15 * a,
+          it.basePos.y + 0.3 * a,
+          it.basePos.z + it.inward.z * 1.15 * a,
+        )
+        it.group.rotation.y =
+          it.baseRot + wrapAngle(it.faceRot - it.baseRot) * a
+        it.group.rotation.z = Math.sin(t * 1.1 + i * 0.8) * 0.02 * (1 - a)
+        it.group.scale.setScalar(1 + 0.1 * a)
       })
       if (st.items.length && lampIdx >= 0) {
         const it = st.items[lampIdx]
