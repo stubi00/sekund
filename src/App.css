@@ -5,6 +5,20 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Štanga (virtualna prodavnica) — bez vidljivog skrola */
+.rack-rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.rack-rail::-webkit-scrollbar {
+  display: none;
+}
+.rack-item {
+  transform-origin: 50% 0;
+  will-change: transform, opacity;
+}
+
 /* Kartice proizvoda — ulazak u kadar */
 @keyframes card-enter {
   from {

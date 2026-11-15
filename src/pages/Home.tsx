@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import Header from '@/sections/Header'
-import Hero from '@/sections/Hero'
+import VirtualStore from '@/sections/VirtualStore'
 import Catalog from '@/sections/Catalog'
 import CartSheet from '@/sections/CartSheet'
 import AdminLogin from '@/sections/AdminLogin'
@@ -119,7 +119,21 @@ export default function Home() {
       />
 
       <main className="flex-1">
-        <Hero settings={settings} />
+        <VirtualStore
+          products={products}
+          loading={loading}
+          genders={genders}
+          category={filterCategory}
+          gender={filterGender}
+          stamp={settings?.stamp}
+          onCategoryChange={setFilterCategory}
+          onGenderChange={setFilterGender}
+          onView={setViewing}
+          onAdd={(p) => {
+            cart.add(p)
+            setCartOpen(true)
+          }}
+        />
 
         {isAdmin && (
           <div className="border-b border-border bg-secondary/60">

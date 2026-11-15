@@ -24,7 +24,7 @@ export interface HeroCard {
 }
 
 export interface SiteSettings {
-  heroCards: HeroCard[]
+  heroCards?: HeroCard[]
   stamp: string
   aboutText?: string
   genders?: string[]
