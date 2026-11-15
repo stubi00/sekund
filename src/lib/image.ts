@@ -25,9 +25,13 @@ export function shrinkImage(file: File): Promise<string> {
       const ctx = canvas.getContext('2d')
       if (!ctx) return reject(new Error('canvas'))
       ctx.drawImage(img, 0, 0, width, height)
-      resolve(canvas.toDataURL('image/jpeg', QUALITY))
+      try {
+        resolve(canvas.toDataURL('image/jpeg', QUALITY))
+      } catch {
+        reject(new Error('decode'))
+      }
     }
-    img.onerror = reject
+    img.onerror = () => reject(new Error('decode'))
     img.src = URL.createObjectURL(file)
   })
 }

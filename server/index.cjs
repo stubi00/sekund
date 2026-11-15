@@ -117,7 +117,7 @@ function requireAuth(req, res, next) {
 
 ensureData()
 const app = express()
-app.use(express.json({ limit: '8mb' }))
+app.use(express.json({ limit: '14mb' }))
 
 // --- auth ---
 app.post('/api/login', (req, res) => {

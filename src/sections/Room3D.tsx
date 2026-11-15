@@ -445,6 +445,46 @@ export default function Room3D({
       })
     })
 
+    /* Reflektori na plafonskoj šini duž svake šipke */
+    wallDefs.forEach(({ nx, nz, rotY }) => {
+      const trackLen = ROOM_R * 2 - 2.2
+      const track = new THREE.Mesh(
+        new THREE.BoxGeometry(trackLen, 0.035, 0.035),
+        new THREE.MeshStandardMaterial({ color: '#16130f', roughness: 0.6 }),
+      )
+      track.rotation.y = rotY
+      track.position.set(nx * (ROOM_R - 0.95), 3.85, nz * (ROOM_R - 0.95))
+      scene.add(track)
+      const headMat = new THREE.MeshStandardMaterial({
+        color: '#16130f',
+        roughness: 0.5,
+        metalness: 0.6,
+        emissive: '#ffca7a',
+        emissiveIntensity: 0.55,
+      })
+      const n = 4
+      for (let i = 0; i < n; i++) {
+        const s = -trackLen / 2 + (trackLen / (n - 1)) * i
+        const head = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.035, 0.05, 0.14, 12),
+          headMat,
+        )
+        /* glava nagnuta ka šipci sa odećom */
+        head.rotation.x = nz !== 0 ? nz * 0.7 : 0
+        head.rotation.z = nx !== 0 ? -nx * 0.7 : 0
+        head.position.set(
+          nx !== 0 ? nx * (ROOM_R - 0.95) : s,
+          3.78,
+          nz !== 0 ? nz * (ROOM_R - 0.95) : s,
+        )
+        scene.add(head)
+      }
+      /* toplo svetlo koje pere odeću na tom zidu */
+      const wash = new THREE.PointLight(0xffd9a8, 3.2, 7, 2)
+      wash.position.set(nx * (ROOM_R - 1.1), 3.1, nz * (ROOM_R - 1.1))
+      scene.add(wash)
+    })
+
     /* Svetleci natpis SEKUND na sredini svakog zida */
     const signTex = signTexture()
     const signMat = new THREE.MeshBasicMaterial({
@@ -633,8 +673,9 @@ export default function Room3D({
       el.style.cursor = 'grab'
       if (moved < 6) {
         const idx = pick(e.clientX, e.clientY)
-        st.pinned = idx >= 0 ? idx : -1
-        if (idx < 0) setActive(-1)
+        /* klik na isti artikal ga otkačinje, klik pored zatvara */
+        st.pinned = idx >= 0 ? (st.pinned === idx ? -1 : idx) : -1
+        if (idx < 0 || st.pinned < 0) setActive(-1)
       }
     }
     el.addEventListener('pointerdown', onDown)
@@ -683,9 +724,8 @@ export default function Room3D({
       /* lampa: hover ili fokus */
       const lampIdx =
         st.pinned >= 0 ? st.pinned : st.hover >= 0 ? st.hover : focus
-      /* prozorčić: pin ili hover ili dok je miš na njemu */
-      let panelIdx =
-        st.pinned >= 0 ? st.pinned : st.hover >= 0 ? st.hover : -1
+      /* prozorčić: samo na klik, ili dok je miš na njemu */
+      let panelIdx = st.pinned >= 0 ? st.pinned : -1
       if (panelIdx < 0 && st.panelHover && lastActive >= 0) panelIdx = lastActive
       if (panelIdx !== lastActive) {
         lastActive = panelIdx
@@ -825,14 +865,14 @@ export default function Room3D({
         <>
           <button
             className="btn-lift absolute left-3 top-1/2 z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 shadow-md md:flex"
-            onClick={() => go(-1)}
+            onClick={() => go(1)}
             aria-label="Prethodni artikal"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             className="btn-lift absolute right-3 top-1/2 z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 shadow-md md:flex"
-            onClick={() => go(1)}
+            onClick={() => go(-1)}
             aria-label="Sledeći artikal"
           >
             <ChevronRight className="h-5 w-5" />

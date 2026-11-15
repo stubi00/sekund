@@ -41,8 +41,21 @@ function MultiImagePicker({
         urls.push(url)
       }
       onChange([...images, ...urls])
-    } catch {
-      setErr('Upload nije uspeo — probaj drugu sliku.')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg === 'decode' || msg === 'canvas') {
+        setErr(
+          'Ova slika se ne može obraditi (telefoni često prave HEIC format) — otvori sliku na telefonu, napravi screenshot i ubaci screenshot.',
+        )
+      } else if (msg.includes('Neovlašćen')) {
+        setErr(
+          'Admin sesija je istekla — zatvori ovaj prozor, prijavi se ponovo kao admin, pa ubaci sliku.',
+        )
+      } else if (msg) {
+        setErr(`Upload nije uspeo: ${msg}`)
+      } else {
+        setErr('Upload nije uspeo — proveri vezu i probaj ponovo.')
+      }
     } finally {
       setBusy(false)
       e.target.value = ''
@@ -84,7 +97,7 @@ function MultiImagePicker({
             {busy ? 'Šaljem…' : '+ Slika'}
             <input
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/*"
               multiple
               className="hidden"
               onChange={pick}
