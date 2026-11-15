@@ -114,9 +114,6 @@ export default function Header({
               </div>
             </div>
           </div>
-          <a href="#kontakt" className="transition-colors hover:text-primary">
-            Kontakt
-          </a>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -211,13 +208,6 @@ export default function Header({
               </div>
             ))}
 
-            <a
-              href="#kontakt"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-secondary"
-            >
-              Kontakt
-            </a>
           </div>
         </nav>
       )}

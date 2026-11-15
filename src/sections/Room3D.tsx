@@ -15,20 +15,17 @@ import { formatRsd } from '@/lib/format'
 interface Props {
   products: Product[]
   loading?: boolean
-  genders: string[]
   category: string
   gender: string
   stamp?: string
   isAdmin?: boolean
-  onCategoryChange: (c: string) => void
-  onGenderChange: (g: string) => void
   onView: (p: Product) => void
   onAdd: (p: Product) => void
   onEdit?: (p: Product) => void
   onDelete?: (p: Product) => void
 }
 
-const ROOM_R = 4.6
+const ROOM_R = 6.0
 const ROD_Y = 2.1
 const ROD_OFF = 0.45
 const GARMENT_W = 1.0
@@ -167,13 +164,10 @@ const wrapAngle = (a: number) => {
 export default function Room3D({
   products,
   loading,
-  genders,
   category,
   gender,
   stamp,
   isAdmin,
-  onCategoryChange,
-  onGenderChange,
   onView,
   onAdd,
   onEdit,
@@ -182,10 +176,6 @@ export default function Room3D({
   const mountRef = useRef<HTMLDivElement>(null)
   const [focused, setFocused] = useState(0)
 
-  const categories = useMemo(
-    () => ['Sve', ...Array.from(new Set(products.map((p) => p.category)))],
-    [products],
-  )
   const filtered = useMemo(
     () =>
       products.filter(
@@ -227,9 +217,9 @@ export default function Room3D({
     const scene = new THREE.Scene()
     scene.background = new THREE.Color('#e7dfd2')
 
-    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 40)
+    const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 40)
     camera.rotation.order = 'YXZ'
-    camera.position.set(0, 1.65, 0)
+    camera.position.set(0, 1.8, 0)
 
     /* Svetlost */
     scene.add(new THREE.HemisphereLight(0xfff6ea, 0x8a7a68, 0.75))
@@ -462,11 +452,11 @@ export default function Room3D({
       })
     })
 
-    /* Kamera — okretanje u krug */
+    /* Kamera — okretanje u krug, blago nadole da se vidi parket */
     let yaw = 0
-    let pitch = 0
+    let pitch = -0.1
     st.targetYaw = 0
-    st.targetPitch = 0
+    st.targetPitch = -0.1
     setFocused(0)
 
     let dragging = false
@@ -726,40 +716,6 @@ export default function Room3D({
           )}
         </div>
 
-        <div className="pointer-events-auto mx-auto max-w-4xl space-y-2 px-4">
-          {genders.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {['Sve', ...genders].map((g) => (
-                <button
-                  key={g}
-                  onClick={() => onGenderChange(g)}
-                  className={`btn-lift rounded-full border px-3.5 py-1 text-sm font-semibold transition-colors ${
-                    gender === g
-                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                      : 'border-border bg-card hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  {g === 'Sve' ? 'Sva odeljenja' : g}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="flex flex-wrap justify-center gap-2">
-            {categories.map((c) => (
-              <button
-                key={c}
-                onClick={() => onCategoryChange(c)}
-                className={`btn-lift rounded-full border px-3.5 py-1 text-sm font-medium transition-colors ${
-                  category === c
-                    ? 'border-accent bg-accent text-accent-foreground shadow-sm'
-                    : 'border-border bg-card hover:border-accent hover:text-accent'
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   )

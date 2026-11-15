@@ -20,7 +20,6 @@ import ProductForm from '@/sections/ProductForm'
 import OrdersDialog from '@/sections/OrdersDialog'
 import HeroForm from '@/sections/HeroForm'
 import ProductDialog from '@/sections/ProductDialog'
-import Footer from '@/sections/Footer'
 import { useNavigate } from 'react-router'
 import { useProducts } from '@/hooks/useProducts'
 import { useSharedCart } from '@/lib/cart-context'
@@ -130,13 +129,10 @@ export default function Home() {
           <Room3D
             products={products}
             loading={loading}
-            genders={genders}
             category={filterCategory}
             gender={filterGender}
             stamp={settings?.stamp}
             isAdmin={isAdmin}
-            onCategoryChange={setFilterCategory}
-            onGenderChange={setFilterGender}
             onView={setViewing}
             onAdd={(p) => {
               cart.add(p)
@@ -187,8 +183,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      <Footer />
 
       <ProductDialog
         product={viewing}
