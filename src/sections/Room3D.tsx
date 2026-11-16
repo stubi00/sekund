@@ -61,9 +61,9 @@ function signTexture() {
   const ctx = c.getContext('2d')!
   ctx.clearRect(0, 0, c.width, c.height)
   ctx.textAlign = 'center'
-  ctx.shadowColor = '#ffdf9e'
-  ctx.shadowBlur = 46
-  ctx.fillStyle = '#ffedc9'
+  ctx.shadowColor = '#d9a85e'
+  ctx.shadowBlur = 30
+  ctx.fillStyle = '#3b2f24'
   ctx.font = '700 330px Georgia, serif'
   ctx.fillText('SEKUND', c.width / 2, 390)
   const t = new THREE.CanvasTexture(c)
@@ -79,13 +79,13 @@ function plasterTexture() {
   c.width = S
   c.height = S
   const ctx = c.getContext('2d')!
-  ctx.fillStyle = '#3d3831'
+  ctx.fillStyle = '#ece5d8'
   ctx.fillRect(0, 0, S, S)
   for (let i = 0; i < 2600; i++) {
     const x = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1
     const y = Math.abs(Math.sin(i * 78.233) * 12543.1234) % 1
     const v = Math.abs(Math.sin(i * 3.7) * 97531.33) % 1
-    ctx.fillStyle = v > 0.5 ? 'rgba(255,245,230,0.025)' : 'rgba(0,0,0,0.05)'
+    ctx.fillStyle = v > 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(90,70,50,0.045)'
     ctx.fillRect(x * S, y * S, 2, 2)
   }
   const t = new THREE.CanvasTexture(c)
@@ -391,15 +391,15 @@ export default function Room3D({
     el.style.touchAction = 'pan-y'
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color('#2a2620')
+    scene.background = new THREE.Color('#f2ede4')
 
     const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 40)
     camera.rotation.order = 'YXZ'
     camera.position.set(0, 1.8, 0)
 
-    /* Bazno svetlo — prigušeno */
-    scene.add(new THREE.HemisphereLight(0xbfae98, 0x1e1a16, 0.62))
-    const sun = new THREE.DirectionalLight(0xffe8cc, 0.4)
+    /* Bazno svetlo — svetla butik atmosfera */
+    scene.add(new THREE.HemisphereLight(0xfffaf0, 0xcfc4b2, 0.95))
+    const sun = new THREE.DirectionalLight(0xffe8cc, 0.55)
     sun.position.set(3, 7, 4)
     sun.castShadow = true
     sun.shadow.mapSize.set(2048, 2048)
@@ -500,7 +500,7 @@ export default function Room3D({
     /* Plafon */
     const ceil = new THREE.Mesh(
       new THREE.PlaneGeometry(ROOM_R * 2, ROOM_R * 2),
-      new THREE.MeshStandardMaterial({ color: '#2a2620', roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: '#f4f0e8', roughness: 1 }),
     )
     ceil.rotation.x = Math.PI / 2
     ceil.position.y = 4.2
@@ -524,7 +524,7 @@ export default function Room3D({
       scene.add(wall)
       const base = new THREE.Mesh(
         new THREE.BoxGeometry(ROOM_R * 2, 0.12, 0.03),
-        new THREE.MeshStandardMaterial({ color: '#575046', roughness: 0.9 }),
+        new THREE.MeshStandardMaterial({ color: '#cfc7b8', roughness: 0.9 }),
       )
       base.rotation.y = rotY
       base.position.set(nx * (ROOM_R - 0.015), 0.06, nz * (ROOM_R - 0.015))
@@ -588,7 +588,7 @@ export default function Room3D({
         scene.add(head)
       }
       /* toplo svetlo koje pere odeću na tom zidu */
-      const wash = new THREE.PointLight(0xffd9a8, 3.2, 7, 2)
+      const wash = new THREE.PointLight(0xffd9a8, 2.4, 7, 2)
       wash.position.set(nx * (ROOM_R - 1.1), 3.1, nz * (ROOM_R - 1.1))
       scene.add(wash)
     })
@@ -953,7 +953,10 @@ export default function Room3D({
         /* izvučena stvar dolazi na sredinu ekrana, ispred tebe */
         camera.getWorldDirection(coneDir)
         tmpTgt.copy(camera.position).addScaledVector(coneDir, 3.3)
-        tmpTgt.y = 1.82
+        tmpTgt.y = 2.05
+        /* korekcija da CENTAR stvari (ne kuka) bude na sredini ekrana */
+        tmpTgt.x -= Math.cos(yaw) * 0.38
+        tmpTgt.z += Math.sin(yaw) * 0.38
         it.group.position.lerpVectors(it.basePos, tmpTgt, a)
         it.group.rotation.y = it.baseRot + wrapAngle(yaw - it.baseRot) * a
         it.group.rotation.z =
@@ -979,7 +982,7 @@ export default function Room3D({
         coneDir.normalize()
         lightCone.quaternion.setFromUnitVectors(UP_VEC, coneDir)
         lightCone.scale.set(1, clen / 1.75, 1)
-        coneMat.opacity += (0.055 + it.anim * 0.05 - coneMat.opacity) * 0.1
+        coneMat.opacity += (0.04 + it.anim * 0.035 - coneMat.opacity) * 0.1
       } else {
         spot.intensity += (0 - spot.intensity) * 0.1
         coneMat.opacity += (0 - coneMat.opacity) * 0.1
@@ -1070,7 +1073,7 @@ export default function Room3D({
   return (
     <section
       id="pocetna"
-      className="relative overflow-hidden bg-[#2a2620]"
+      className="relative overflow-hidden bg-[#f2ede4]"
     >
       <div
         ref={mountRef}
@@ -1080,13 +1083,13 @@ export default function Room3D({
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,0.32) 100%)',
+            'radial-gradient(ellipse at center, transparent 60%, rgba(84,68,48,0.14) 100%)',
         }}
         aria-hidden
       />
 
       {(skeleton || filtered.length === 0) && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#2a2620] text-white/60">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#f2ede4] text-[#6b6156]">
           {skeleton
             ? 'Učitavam prodavnicu…'
             : 'Nema artikala u ovom izboru — probaj drugi izbor u meniju Prodavnica.'}
