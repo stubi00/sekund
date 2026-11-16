@@ -96,42 +96,49 @@ function plasterTexture() {
   return t
 }
 
-/* Parket — riblja kost */
+/* Laminat — svetle duge daske u redovima */
 function floorTexture() {
   const S = 512
   const c = document.createElement('canvas')
   c.width = S
   c.height = S
   const ctx = c.getContext('2d')!
-  ctx.fillStyle = '#6e5138'
+  ctx.fillStyle = '#a8855c'
   ctx.fillRect(0, 0, S, S)
-  const tones = ['#7d5f41', '#75573b', '#836546', '#6f5238', '#866a4b']
-  let k = 0
-  for (let y = -64; y < S + 64; y += 64) {
-    for (let x = -64; x < S + 64; x += 64) {
-      /* dve daske pod ±45° — riblja kost */
-      ctx.save()
-      ctx.translate(x, y)
-      ctx.rotate(Math.PI / 4)
-      ctx.fillStyle = tones[k++ % tones.length]
-      ctx.fillRect(-48, -11, 96, 22)
-      ctx.strokeStyle = 'rgba(30,20,12,0.55)'
+  const tones = ['#c8a87a', '#bd9c6d', '#d0b184', '#c39f71', '#cca977']
+  const PH = 64 /* visina daske */
+  const PW = 256 /* dužina daske */
+  let row = 0
+  for (let y = 0; y < S; y += PH, row++) {
+    const off = (row % 2) * (PW / 2)
+    for (let x = -PW; x < S + PW; x += PW) {
+      const tone = tones[(row * 3 + ((x / PW) | 0) + 50) % tones.length]
+      ctx.fillStyle = tone
+      ctx.fillRect(x + off + 1.5, y + 1.5, PW - 3, PH - 3)
+      /* fuga */
+      ctx.strokeStyle = 'rgba(80,58,34,0.55)'
       ctx.lineWidth = 2
-      ctx.strokeRect(-48, -11, 96, 22)
-      ctx.fillStyle = 'rgba(255,240,220,0.05)'
-      ctx.fillRect(-48, -11, 96, 5)
-      ctx.restore()
-      ctx.save()
-      ctx.translate(x + 32, y + 32)
-      ctx.rotate(-Math.PI / 4)
-      ctx.fillStyle = tones[k++ % tones.length]
-      ctx.fillRect(-48, -11, 96, 22)
-      ctx.strokeStyle = 'rgba(30,20,12,0.55)'
-      ctx.lineWidth = 2
-      ctx.strokeRect(-48, -11, 96, 22)
-      ctx.fillStyle = 'rgba(255,240,220,0.05)'
-      ctx.fillRect(-48, -11, 96, 5)
-      ctx.restore()
+      ctx.strokeRect(x + off + 1, y + 1, PW - 2, PH - 2)
+      /* tekstura drveta — par tankih vlakana */
+      for (let gLine = 0; gLine < 4; gLine++) {
+        const gy = y + 10 + gLine * 14 + ((x + row * 7) % 5)
+        ctx.strokeStyle = 'rgba(120,88,52,0.18)'
+        ctx.lineWidth = 1.4
+        ctx.beginPath()
+        ctx.moveTo(x + off + 6, gy)
+        ctx.bezierCurveTo(
+          x + off + PW * 0.3,
+          gy + 3,
+          x + off + PW * 0.7,
+          gy - 3,
+          x + off + PW - 6,
+          gy + 1,
+        )
+        ctx.stroke()
+      }
+      /* sjajna traka */
+      ctx.fillStyle = 'rgba(255,246,230,0.08)'
+      ctx.fillRect(x + off + 2, y + 3, PW - 4, 6)
     }
   }
   const t = new THREE.CanvasTexture(c)
@@ -167,27 +174,27 @@ function createHanger() {
   )
   neck.position.y = -0.1
   g.add(neck)
-  /* ramena — dve nagnute drvene letve */
-  const armL = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.02, 0.014, GARMENT_W * 0.52, 10),
-    wood,
-  )
-  armL.rotation.z = Math.PI / 2 - 0.32
-  armL.position.set(-GARMENT_W * 0.235, -0.19, 0)
-  armL.castShadow = true
-  g.add(armL)
-  const armR = armL.clone()
-  armR.rotation.z = Math.PI / 2 + 0.32
-  armR.position.x = GARMENT_W * 0.235
-  g.add(armR)
-  /* poprečna letva */
+  /* drvena ramena-šipka — viri kroz kragnu kao na pravoj vešalici */
   const bar = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.014, 0.014, GARMENT_W * 0.82, 10),
+    new THREE.CylinderGeometry(0.02, 0.02, GARMENT_W * 0.62, 12),
     wood,
   )
   bar.rotation.z = Math.PI / 2
-  bar.position.y = -0.34
+  bar.position.y = -0.1
+  bar.castShadow = true
   g.add(bar)
+  /* kratke nagnute letve — skrivene unutar odeće */
+  const armL = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.018, 0.012, GARMENT_W * 0.4, 10),
+    wood,
+  )
+  armL.rotation.z = Math.PI / 2 - 0.38
+  armL.position.set(-GARMENT_W * 0.17, -0.26, 0)
+  g.add(armL)
+  const armR = armL.clone()
+  armR.rotation.z = Math.PI / 2 + 0.38
+  armR.position.x = GARMENT_W * 0.17
+  g.add(armR)
   return g
 }
 
@@ -644,7 +651,7 @@ export default function Room3D({
 
         group.add(createHanger())
         /* vešalica u „ramenima" odeće — kuka viri iznad kragnе */
-        group.children[0].position.x = 0.28
+        group.children[0].position.x = 0.34
 
         const img = p.images?.[0] || p.imageUrl
         let tex: THREE.Texture
@@ -1128,7 +1135,7 @@ export default function Room3D({
         }}
       >
         {activeProduct && (
-          <div className="pointer-events-auto overflow-hidden rounded-2xl border border-white/15 bg-[#231f1a]/95 text-[#f2ece1] shadow-[0_18px_50px_-12px_rgba(0,0,0,0.8)] backdrop-blur-md">
+          <div className="pointer-events-auto overflow-hidden rounded-2xl border border-[#e5d9c4] bg-[#faf5ec]/95 text-[#3b2f24] shadow-[0_18px_50px_-12px_rgba(60,45,25,0.45)] backdrop-blur-md">
             {(activeProduct.images?.[0] || activeProduct.imageUrl) && (
               <div
                 className="relative cursor-zoom-in"
@@ -1147,7 +1154,7 @@ export default function Room3D({
                   alt={activeProduct.name}
                   className="h-24 w-full object-cover"
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#231f1a]/70 to-transparent" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#faf5ec]/80 to-transparent" />
               </div>
             )}
             <div className="p-3">
@@ -1162,33 +1169,33 @@ export default function Room3D({
                     stateRef.current.panelArmed = false
                     setActive(-1)
                   }}
-                  className="mt-0.5 shrink-0 text-white/50 transition-colors hover:text-white"
+                  className="mt-0.5 shrink-0 text-[#3b2f24]/40 transition-colors hover:text-[#3b2f24]"
                   aria-label="Zatvori"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium">
+                <span className="rounded-full bg-[#ece3d2] px-2 py-0.5 text-[11px] font-medium text-[#5c5044]">
                   {activeProduct.category}
                 </span>
                 {activeProduct.gender && (
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium">
+                  <span className="rounded-full bg-[#ece3d2] px-2 py-0.5 text-[11px] font-medium text-[#5c5044]">
                     {activeProduct.gender}
                   </span>
                 )}
                 {activeProduct.size && (
-                  <span className="rounded-full bg-[#d98a63]/25 px-2 py-0.5 text-[11px] font-semibold text-[#f0b98f]">
+                  <span className="rounded-full bg-[#f0d9b8] px-2 py-0.5 text-[11px] font-semibold text-[#8a4a1e]">
                     Vel. {activeProduct.size}
                   </span>
                 )}
               </div>
               {activeProduct.description && (
-                <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-white/65">
+                <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-[#6b6156]">
                   {activeProduct.description}
                 </p>
               )}
-              <p className="mt-2 font-display text-lg font-bold text-[#f0b98f]">
+              <p className="mt-2 font-display text-lg font-bold text-[#b45a28]">
                 {formatRsd(activeProduct.price)}
               </p>
               <Button
