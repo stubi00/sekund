@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { Reflector } from 'three/addons/objects/Reflector.js'
 import {
   ChevronLeft,
   ChevronRight,
@@ -602,23 +601,6 @@ export default function Room3D({
       scene.add(wash)
     })
 
-    /* Ogledalo na južnom zidu — kao u pravoj radnji */
-    const mirror = new Reflector(new THREE.PlaneGeometry(2.0, 2.4), {
-      clipBias: 0.003,
-      textureWidth: 1024,
-      textureHeight: 1024,
-      color: 0xbfc4c6,
-    })
-    mirror.position.set(-2.6, 1.45, ROOM_R - 0.035)
-    mirror.rotation.y = Math.PI
-    scene.add(mirror)
-    const mirrorFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(2.16, 2.56, 0.04),
-      new THREE.MeshStandardMaterial({ color: '#4a3a28', roughness: 0.5 }),
-    )
-    mirrorFrame.position.set(-2.6, 1.45, ROOM_R - 0.015)
-    scene.add(mirrorFrame)
-
     /* Klupa sa jastukom */
     const bench = new THREE.Group()
     const benchWood = new THREE.MeshStandardMaterial({
@@ -1104,6 +1086,13 @@ export default function Room3D({
             camera.position.x *= maxR / rr
             camera.position.z *= maxR / rr
           }
+        } else {
+          /* kad ne hodaš: kamera sama odmice od zida u koji gledaš */
+          const orbitR = ROOM_R * 0.52
+          const desX = Math.sin(yaw) * orbitR
+          const desZ = Math.cos(yaw) * orbitR
+          camera.position.x += (desX - camera.position.x) * 0.05
+          camera.position.z += (desZ - camera.position.z) * 0.05
         }
       }
 
