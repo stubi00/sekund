@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { Reflector } from 'three/addons/objects/Reflector.js'
 import {
   ChevronLeft,
   ChevronRight,
@@ -402,7 +403,8 @@ export default function Room3D({
 
     const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 40)
     camera.rotation.order = 'YXZ'
-    camera.position.set(0, 1.8, 0)
+    /* stojiš u radnji — pogled iz prvog lica */
+    camera.position.set(0, 1.65, 3.2)
 
     /* Bazno svetlo — svetla butik atmosfera */
     scene.add(new THREE.HemisphereLight(0xfffaf0, 0xcfc4b2, 0.95))
@@ -496,8 +498,8 @@ export default function Room3D({
 
     /* Tepih */
     const rug = new THREE.Mesh(
-      new THREE.CircleGeometry(1.7, 40),
-      new THREE.MeshStandardMaterial({ color: '#7d3b2a', roughness: 1 }),
+      new THREE.CircleGeometry(1.25, 40),
+      new THREE.MeshStandardMaterial({ color: '#8a4a36', roughness: 1 }),
     )
     rug.rotation.x = -Math.PI / 2
     rug.position.y = 0.006
@@ -599,6 +601,147 @@ export default function Room3D({
       wash.position.set(nx * (ROOM_R - 1.1), 3.1, nz * (ROOM_R - 1.1))
       scene.add(wash)
     })
+
+    /* Ogledalo na južnom zidu — kao u pravoj radnji */
+    const mirror = new Reflector(new THREE.PlaneGeometry(2.0, 2.4), {
+      clipBias: 0.003,
+      textureWidth: 1024,
+      textureHeight: 1024,
+      color: 0xbfc4c6,
+    })
+    mirror.position.set(-2.6, 1.45, ROOM_R - 0.035)
+    mirror.rotation.y = Math.PI
+    scene.add(mirror)
+    const mirrorFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(2.16, 2.56, 0.04),
+      new THREE.MeshStandardMaterial({ color: '#4a3a28', roughness: 0.5 }),
+    )
+    mirrorFrame.position.set(-2.6, 1.45, ROOM_R - 0.015)
+    scene.add(mirrorFrame)
+
+    /* Klupa sa jastukom */
+    const bench = new THREE.Group()
+    const benchWood = new THREE.MeshStandardMaterial({
+      color: '#8a5f3c',
+      roughness: 0.5,
+    })
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.09, 0.45), benchWood)
+    seat.position.y = 0.45
+    seat.castShadow = true
+    seat.receiveShadow = true
+    bench.add(seat)
+    const cushion = new THREE.Mesh(
+      new THREE.BoxGeometry(1.44, 0.09, 0.4),
+      new THREE.MeshStandardMaterial({ color: '#a8563e', roughness: 0.95 }),
+    )
+    cushion.position.y = 0.54
+    cushion.castShadow = true
+    bench.add(cushion)
+    ;[-0.65, 0.65].forEach((lx) =>
+      [-0.15, 0.15].forEach((lz) => {
+        const leg = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.025, 0.02, 0.45, 8),
+          new THREE.MeshStandardMaterial({
+            color: '#3a332c',
+            roughness: 0.5,
+            metalness: 0.5,
+          }),
+        )
+        leg.position.set(lx, 0.225, lz)
+        leg.castShadow = true
+        bench.add(leg)
+      }),
+    )
+    bench.position.set(1.7, 0, 1.3)
+    bench.rotation.y = -0.4
+    scene.add(bench)
+
+    /* Biljke u uglu */
+    const addPlant = (px: number, pz: number) => {
+      const g = new THREE.Group()
+      const pot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.16, 0.12, 0.26, 16),
+        new THREE.MeshStandardMaterial({ color: '#a8573a', roughness: 0.85 }),
+      )
+      pot.position.y = 0.13
+      pot.castShadow = true
+      g.add(pot)
+      const leafMat = new THREE.MeshStandardMaterial({
+        color: '#3f5d3a',
+        roughness: 0.9,
+      })
+      for (let i = 0; i < 7; i++) {
+        const h = 0.5 + (i % 3) * 0.18
+        const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.05, h, 6), leafMat)
+        const a = (i / 7) * Math.PI * 2
+        leaf.position.set(Math.cos(a) * 0.07, 0.26 + h / 2, Math.sin(a) * 0.07)
+        leaf.rotation.z = Math.cos(a) * 0.4
+        leaf.rotation.x = Math.sin(a) * 0.4
+        leaf.castShadow = true
+        g.add(leaf)
+      }
+      g.position.set(px, 0, pz)
+      scene.add(g)
+    }
+    addPlant(-ROOM_R + 0.8, -ROOM_R + 0.8)
+    addPlant(ROOM_R - 0.8, ROOM_R - 0.8)
+
+    /* Posteri u ramovima na zidovima */
+    const posterTex = (title: string, sub: string) => {
+      const c = document.createElement('canvas')
+      c.width = 512
+      c.height = 640
+      const ctx = c.getContext('2d')!
+      ctx.fillStyle = '#f5efe3'
+      ctx.fillRect(0, 0, 512, 640)
+      ctx.strokeStyle = '#3b2f24'
+      ctx.lineWidth = 10
+      ctx.strokeRect(30, 30, 452, 580)
+      ctx.fillStyle = '#3b2f24'
+      ctx.textAlign = 'center'
+      ctx.font = '700 84px Georgia, serif'
+      ctx.fillText(title, 256, 300)
+      ctx.font = 'italic 400 40px Georgia, serif'
+      ctx.fillStyle = '#7a6a52'
+      ctx.fillText(sub, 256, 380)
+      ctx.fillRect(156, 440, 200, 4)
+      const t = new THREE.CanvasTexture(c)
+      t.colorSpace = THREE.SRGBColorSpace
+      return t
+    }
+    const addPoster = (
+      px: number,
+      pz: number,
+      rotY: number,
+      title: string,
+      sub: string,
+    ) => {
+      const fr = new THREE.Mesh(
+        new THREE.BoxGeometry(1.0, 1.25, 0.04),
+        new THREE.MeshStandardMaterial({ color: '#2c241c', roughness: 0.4 }),
+      )
+      fr.position.set(px, 3.0, pz)
+      fr.rotation.y = rotY
+      scene.add(fr)
+      const art = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.92, 1.17),
+        new THREE.MeshStandardMaterial({ map: posterTex(title, sub) }),
+      )
+      art.position.set(
+        px - Math.sin(rotY) * -0.025 * (Math.abs(Math.sin(rotY)) > 0.5 ? 1 : 1),
+        3.0,
+        pz,
+      )
+      /* slika malo ispred rama, okrenuta ka prostoriji */
+      art.rotation.y = rotY
+      const fwd = new THREE.Vector3(0, 0, 0.026).applyEuler(
+        new THREE.Euler(0, rotY, 0),
+      )
+      art.position.set(px + fwd.x, 3.0, pz + fwd.z)
+      scene.add(art)
+    }
+    addPoster(3.0, -ROOM_R + 0.04, 0, 'SEKUND', 'polovno · provereno')
+    addPoster(ROOM_R - 0.04, 2.6, -Math.PI / 2, 'NOVO', 'svake nedelje')
 
     /* Svetleci natpis SEKUND na sredini svakog zida */
     const signTex = signTexture()
@@ -881,6 +1024,21 @@ export default function Room3D({
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
 
+    /* Šetnja kroz radnju — WASD / strelice */
+    const keys = new Set<string>()
+    const onKeyDown = (e: KeyboardEvent) => {
+      const tag = (document.activeElement?.tagName || '').toLowerCase()
+      if (tag === 'input' || tag === 'textarea') return
+      const k = e.key.toLowerCase()
+      if (k.startsWith('arrow')) e.preventDefault()
+      keys.add(k)
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      keys.delete(e.key.toLowerCase())
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+
     /* Veličina */
     const resize = () => {
       const w = mount.clientWidth
@@ -910,6 +1068,44 @@ export default function Room3D({
       pitch += (st.targetPitch - pitch) * 0.09
       camera.rotation.y = yaw
       camera.rotation.x = pitch
+
+      /* hodanje — prvo lice */
+      {
+        const spd = 0.05
+        const fx = -Math.sin(yaw)
+        const fz = -Math.cos(yaw)
+        const rx = Math.cos(yaw)
+        const rz = -Math.sin(yaw)
+        let mx = 0
+        let mz = 0
+        if (keys.has('w') || keys.has('arrowup')) {
+          mx += fx
+          mz += fz
+        }
+        if (keys.has('s') || keys.has('arrowdown')) {
+          mx -= fx
+          mz -= fz
+        }
+        if (keys.has('a') || keys.has('arrowleft')) {
+          mx -= rx
+          mz -= rz
+        }
+        if (keys.has('d') || keys.has('arrowright')) {
+          mx += rx
+          mz += rz
+        }
+        if (mx !== 0 || mz !== 0) {
+          const len = Math.hypot(mx, mz)
+          camera.position.x += (mx / len) * spd
+          camera.position.z += (mz / len) * spd
+          const rr = Math.hypot(camera.position.x, camera.position.z)
+          const maxR = ROOM_R - 1.1
+          if (rr > maxR) {
+            camera.position.x *= maxR / rr
+            camera.position.z *= maxR / rr
+          }
+        }
+      }
 
       /* hover se proverava svaki frejm — radi i dok se stvar kreće */
       if (!dragging && lastIsMouse) {
@@ -1034,6 +1230,8 @@ export default function Room3D({
       el.removeEventListener('pointerdown', onDown)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           o.geometry.dispose()
@@ -1102,6 +1300,11 @@ export default function Room3D({
             : 'Nema artikala u ovom izboru — probaj drugi izbor u meniju Prodavnica.'}
         </div>
       )}
+
+      {/* Uputstvo za šetnju */}
+      <div className="pointer-events-none absolute bottom-3 left-3 z-20 hidden rounded-full bg-[#3b2f24]/70 px-4 py-1.5 text-xs font-medium text-[#faf5ec] backdrop-blur-sm md:block">
+        WASD / strelice — šetaj · vuči mišem — razgledaj · klik na stvar — pogledaj
+      </div>
 
       {filtered.length > 1 && (
         <>
